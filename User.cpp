@@ -71,20 +71,18 @@ double User::get_rs_prediction_score_for_movie(const std::string& name,
 }
 
 std::ostream& operator<<(std::ostream& os, const User& user) {
-    // Ensure consistent output format
     os << "name: " << user.username << std::endl;
     if (user.rs) {
-        // Sort movies before printing
         std::vector<sp_movie> sorted_movies;
-        for (const auto& [movie, _] : user.rs->movies_features) {
+        // Use the public getter instead
+        for (const auto& [movie, _] : user.rs->get_movies()) {
             sorted_movies.push_back(movie);
         }
-        
         std::sort(sorted_movies.begin(), sorted_movies.end(),
                  [](const sp_movie& a, const sp_movie& b) {
                      return *a < *b;
                  });
-                 
+
         for (const auto& movie : sorted_movies) {
             os << *movie;
         }

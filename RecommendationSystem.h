@@ -46,6 +46,10 @@ private:
 public:
     RecommendationSystem() = default;
 
+    const std::map<sp_movie, std::vector<double>>& get_movies() const {
+    return movies_features;
+}
+
     sp_movie get_movie(const std::string& name, int year) const;
 
     /**

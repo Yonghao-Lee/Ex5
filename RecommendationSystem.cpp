@@ -220,7 +220,8 @@ double RecommendationSystem::predict_movie_score(const User& user,
 
     // Calculate weighted average
     double sum_weights = 0, weighted_sum = 0;
-    for (size_t i = 0; i < std::min(k, (int)similarities_and_ratings.size()); ++i) {
+    for (size_t i = 0; i < static_cast<size_t>(std::min(k,
+    static_cast<int>(similarities_and_ratings.size()))); ++i)	 {
         const auto& [similarity, rating] = similarities_and_ratings[i];
         weighted_sum += similarity * rating;
         sum_weights += similarity;
