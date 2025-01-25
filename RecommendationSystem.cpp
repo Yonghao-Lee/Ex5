@@ -127,3 +127,100 @@ sp_movie RecommendationSystem::recommend_by_content(const User& user) const {
 
     return best_movie;
 }
+
+sp_movie RecommendationSystem::add_movie_to_rs(const std::string& name, int year,
+                                           const std::vector<double>& features) {
+    // First validate the feature vector
+    validate_feature_vector(features);
+
+    // Check if movie already exists
+    sp_movie movie = get_movie(name, year);
+    if (movie) {
+        return movie;  // Return existing movie if found
+    }
+
+    // Create new movie and add to system
+    movie = std::make_shared<Movie>(name, year);
+    movies_features[movie] = features;
+    return movie;
+}
+
+double RecommendationSystem::predict_movie_score(const User& user,
+                                               const sp_movie& movie, int k) {
+    if (!movie || k <= 0) {
+        throw std::invalid_argument("Invalid movie or k parameter");
+    }
+
+    const auto& user_rankings = user.get_rank();
+    if (user_rankings.empty()) {
+        throw std::runtime_error("User has no ratings");
+    }
+
+    // Find k most similar movies that the user has rated
+    std::vector<std::pair<double, sp_movie>> similarities;
+    const auto& target_features = movies_features[movie];
+
+    for (const auto& [rated_movie, rating] : user_rankings) {
+        double similarity = cosine_similarity(target_features,
+                                           movies_features[rated_movie]);
+        similarities.emplace_back(similarity, rated_movie);
+    }
+
+    // Sort by similarity and keep top k
+    std::partial_sort(similarities.begin(),
+                     similarities.begin() + std::min(k, (int)similarities.size()),
+                     similarities.end(),
+                     [](const auto& a, const auto& b) {
+                         return a.first > b.first;
+                     });
+
+    // Calculate weighted average of ratings
+    double weighted_sum = 0;
+    double weight_sum = 0;
+    int count = 0;
+
+    for (const auto& [similarity, similar_movie] : similarities) {
+        if (count >= k) break;
+        weighted_sum += similarity * user_rankings.at(similar_movie);
+        weight_sum += similarity;
+        count++;
+    }
+
+    return weighted_sum / weight_sum;
+}
+
+sp_movie RecommendationSystem::recommend_by_cf(const User& user, int k) {
+    if (k <= 0) {
+        throw std::invalid_argument("k must be positive");
+    }
+
+    const auto& rankings = user.get_rank();
+    if (rankings.empty()) {
+        throw std::runtime_error("User has no ratings");
+    }
+
+    sp_movie best_movie = nullptr;
+    double highest_score = std::numeric_limits<double>::lowest();
+
+    // For each unwatched movie, predict score and keep track of highest
+    for (const auto& [movie, features] : movies_features) {
+        if (rankings.find(movie) != rankings.end()) {
+            continue;  // Skip movies user has already rated
+        }
+
+        double predicted_score = predict_movie_score(user, movie, k);
+        if (predicted_score > highest_score) {
+            highest_score = predicted_score;
+            best_movie = movie;
+        }
+    }
+
+    return best_movie;
+}
+
+std::ostream& operator<<(std::ostream& os, const RecommendationSystem& rs) {
+    for (const auto& pair : rs.movies_features) {
+        os << *(pair.first);  // Use Movie's operator
+    }
+    return os;
+}
