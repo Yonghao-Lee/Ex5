@@ -12,20 +12,31 @@ sp_movie User::get_rs_recommendation_by_content() const {
 }
 
 sp_movie User::get_rs_recommendation_by_cf(int k) const {
-    return rs->recommend_by_cf(*this, k);
+    if (!rs) {
+        throw std::runtime_error("Recommendation system is null");
+    }
+    try {
+        return rs->recommend_by_cf(*this, k);
+    } catch (const std::exception& e) {
+        // If recommendation fails, return nullptr or rethrow based on requirements
+        return nullptr;
+    }
 }
 
 double User::get_rs_prediction_score_for_movie(const std::string& name,
                                              int year, int k) const {
+    if (!rs) {
+        throw std::runtime_error("Recommendation system is null");
+    }
+
     sp_movie movie = rs->get_movie(name, year);
-    if (movie == nullptr) {
+    if (!movie) {
         return 0;
     }
-    return rs->predict_movie_score(*this, movie, k);
-}
 
-std::ostream& operator<<(std::ostream& os, const User& user) {
-    os << "name: " << user.username << std::endl;
-    os << *user.rs;
-    return os;
+    try {
+        return rs->predict_movie_score(*this, movie, k);
+    } catch (const std::exception& e) {
+        return 0;  // Return default score on error
+    }
 }
