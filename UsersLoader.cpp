@@ -15,6 +15,7 @@ std::vector<User> UsersLoader::create_users(
     }
 
     std::vector<User> users;
+    users.reserve(10);  // Reserve some reasonable initial capacity
     std::string line;
 
     // Read header
