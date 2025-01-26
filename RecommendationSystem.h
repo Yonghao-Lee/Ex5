@@ -9,6 +9,7 @@
 #include <memory>
 #include <stdexcept>
 #include "Movie.h"
+#include<algorithm>
 
 class User;
 class RecommendationSystemLoader;
