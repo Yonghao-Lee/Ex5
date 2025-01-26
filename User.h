@@ -1,14 +1,10 @@
 #ifndef USER_H
 #define USER_H
 
-#include <unordered_map>
-#include <vector>
 #include <string>
 #include <memory>
-#include "Movie.h"
+#include <vector>
 #include "RecommendationSystem.h"
-
-typedef std::unordered_map<sp_movie, double, hash_func, equal_func> rank_map;
 
 class User {
 private:
@@ -36,4 +32,4 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const User& user);
 };
 
-#endif // USER_H
+#endif

@@ -6,10 +6,12 @@
 #include <map>
 #include <memory>
 #include <cmath>
+#include <unordered_map>
 #include "Movie.h"
-#include "User.h"
 
+// Forward declarations
 class User;
+typedef std::unordered_map<sp_movie, double, hash_func, equal_func> rank_map;
 
 struct sp_movie_compare {
     bool operator()(const sp_movie &lhs, const sp_movie &rhs) const {
@@ -21,10 +23,9 @@ struct sp_movie_compare {
 class RecommendationSystem {
 private:
     std::map<sp_movie, std::vector<double>, sp_movie_compare> movies_;
-
     void make_pref(const rank_map& ranks, std::vector<double>& pref_vec);
     sp_movie find_rec(const rank_map& ranks, const std::vector<double>& pref_vec);
-    double check_similarity(const sp_movie& movie1, const sp_movie& movie2);
+    double check_similarity(const sp_movie& movie1, const std::vector<double>& vec);
 
 public:
     RecommendationSystem() = default;
