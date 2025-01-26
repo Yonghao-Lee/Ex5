@@ -26,7 +26,6 @@ sp_movie User::get_rs_recommendation_by_content() const {
     if (!rs) {
         throw std::runtime_error("No RecommendationSystem");
     }
-    // Let the RS function throw or succeed
     return rs->recommend_by_content(*this);
 }
 
@@ -47,7 +46,6 @@ double User::get_rs_prediction_score_for_movie(const std::string& name,
     try {
         sp_movie mv = rs->get_movie(name, year);
         if (!mv) {
-            // Not found
             return 0;
         }
         return rs->predict_movie_score(*this, mv, k);
@@ -59,7 +57,6 @@ double User::get_rs_prediction_score_for_movie(const std::string& name,
 std::ostream& operator<<(std::ostream& os, const User& user) {
     os << "name: " << user.get_name() << "\n";
     if (user.rs) {
-        // Print all system movies in sorted order
         const auto& movie_map = user.rs->get_movies();
         std::vector<sp_movie> sorted;
         sorted.reserve(movie_map.size());
