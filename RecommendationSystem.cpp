@@ -38,8 +38,11 @@ double RecommendationSystem::cosine_similarity(const std::vector<double>& v1,
         norm2 += v2[i] * v2[i];
     }
 
-    double norms = std::sqrt(norm1) * std::sqrt(norm2);
-    return norms == 0.0 ? 0.0 : dot / norms;
+    norm1 = std::sqrt(norm1);
+    norm2 = std::sqrt(norm2);
+
+    if (norm1 == 0.0 || norm2 == 0.0) return 0.0;
+    return dot / (norm1 * norm2);
 }
 
 std::vector<double> RecommendationSystem::get_preference_vector(const User& user) const {
@@ -69,6 +72,11 @@ std::vector<double> RecommendationSystem::get_preference_vector(const User& user
             p[i] += s_bar * features[i];
         }
     }
+
+    // Normalize preference vector
+    for (size_t i = 0; i < dim; i++) {
+        p[i] /= ranks.size();
+    }
     return p;
 }
 
@@ -85,9 +93,8 @@ sp_movie RecommendationSystem::recommend_by_content(const User& user) const {
         if (ranks.find(kv.first) != ranks.end()) continue;
 
         double sim = cosine_similarity(p, kv.second);
-        // Updated tie-breaking logic
-        if (sim > best_sim ||
-            (sim == best_sim && best_movie &&
+        if (!best_movie || sim > best_sim ||
+            (sim == best_sim &&
              (kv.first->get_year() < best_movie->get_year() ||
               (kv.first->get_year() == best_movie->get_year() &&
                kv.first->get_name() < best_movie->get_name())))) {
@@ -142,7 +149,11 @@ double RecommendationSystem::predict_movie_score(const User& user,
         den += neighbors[i].first;
     }
 
-    return den == 0.0 ? m : m + (num / den);
+    double score = m;
+    if (den > 0.0) {
+        score += (num / den);
+    }
+    return std::max(1.0, std::min(10.0, score));  // Clamp to valid range
 }
 
 sp_movie RecommendationSystem::recommend_by_cf(const User& user, int k) {
@@ -154,8 +165,8 @@ sp_movie RecommendationSystem::recommend_by_cf(const User& user, int k) {
         if (ranks.find(mv.first) != ranks.end()) continue;
 
         double score = predict_movie_score(user, mv.first, k);
-        if (score > best_score ||
-            (score == best_score && best_movie &&
+        if (!best_movie || score > best_score ||
+            (score == best_score &&
              (mv.first->get_year() < best_movie->get_year() ||
               (mv.first->get_year() == best_movie->get_year() &&
                mv.first->get_name() < best_movie->get_name())))) {
