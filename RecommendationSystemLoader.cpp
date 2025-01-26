@@ -3,66 +3,43 @@
 #include <sstream>
 #include <stdexcept>
 
-std::shared_ptr<RecommendationSystem>
-RecommendationSystemLoader::create_rs_from_movies(const std::string& path)
-{
-    std::ifstream file(path);
+std::unique_ptr<RecommendationSystem> RecommendationSystemLoader::create_rs_from_movies(
+    const std::string& movies_file_path) {
+    
+    std::ifstream file(movies_file_path);
     if (!file.is_open()) {
-        throw std::runtime_error("Could not open movies file: " + path);
+        throw std::runtime_error("Could not open movies file");
     }
 
-    auto rs = std::make_shared<RecommendationSystem>();
+    auto rs = std::make_unique<RecommendationSystem>();
     std::string line;
-    int line_number = 0;
-    size_t expected_features = 0;
 
     while (std::getline(file, line)) {
-        line_number++;
-        if (line.empty()) {
+        std::istringstream iss(line);
+        std::string movie_info;
+        std::vector<double> features;
+        
+        if (!std::getline(iss, movie_info, ' ')) {
             continue;
         }
-        try {
-            std::istringstream iss(line);
-            std::string movie_info;
-            if (!(iss >> movie_info)) {
-                // No tokens in this line
-                continue;
-            }
-            size_t pos = movie_info.rfind('-');
-            if (pos == std::string::npos || pos == 0 || pos == movie_info.size() - 1) {
-                throw std::runtime_error("Invalid movie format");
-            }
-            std::string name = movie_info.substr(0, pos);
-            int year = std::stoi(movie_info.substr(pos + 1));
-
-            std::vector<double> features;
-            double feat;
-            while (iss >> feat) {
-                if (feat < 1.0 || feat > 10.0) {
-                    throw std::runtime_error("Feature value out of range");
-                }
-                features.push_back(feat);
-            }
-
-            // Check feature count consistency
-            if (line_number == 1) {
-                expected_features = features.size();
-            } else {
-                if (features.size() != expected_features) {
-                    throw std::runtime_error("Inconsistent feature count");
-                }
-            }
-
-            rs->add_movie_to_rs(name, year, features);
-
-        } catch (std::exception &e) {
-            throw std::runtime_error("Error at line " +
-                                     std::to_string(line_number) + ": " + e.what());
+        
+        size_t year_start = movie_info.find_last_of('-');
+        if (year_start == std::string::npos) {
+            continue;
         }
-    }
+        
+        std::string name = movie_info.substr(0, year_start);
+        int year = std::stoi(movie_info.substr(year_start + 1));
 
-    if (rs->get_movies().empty()) {
-        throw std::runtime_error("No valid movies found in file");
+        double feature;
+        while (iss >> feature) {
+            if (feature < 1 || feature > 10) {
+                throw std::runtime_error("Feature values must be between 1 and 10");
+            }
+            features.push_back(feature);
+        }
+
+        rs->add_movie_to_rs(name, year, features);
     }
 
     return rs;

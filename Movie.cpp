@@ -1,20 +1,12 @@
 #include "Movie.h"
-#include <stdexcept>
 
-std::size_t sp_movie_hash(const sp_movie& movie) {
-    if (!movie) {
-        throw std::invalid_argument("Null movie pointer");
-    }
-    std::size_t result = HASH_START;
-    result = result * RES_MULT + std::hash<std::string>()(movie->get_name());
-    result = result * RES_MULT + std::hash<int>()(movie->get_year());
-    return result;
+std::size_t sp_movie_hash(const sp_movie& movie){
+    std::size_t res = HASH_START;
+    res = res * RES_MULT + std::hash<std::string>()(movie->get_name());
+    res = res * RES_MULT + std::hash<int>()(movie->get_year());
+    return res;
 }
 
-bool sp_movie_equal(const sp_movie& m1, const sp_movie& m2) {
-    if (!m1 || !m2) {
-        throw std::invalid_argument("Null movie pointer");
-    }
-    // Two movies are equal if neither is strictly less than the other
+bool sp_movie_equal(const sp_movie& m1,const sp_movie& m2){
     return !(*m1 < *m2) && !(*m2 < *m1);
 }
