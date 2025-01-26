@@ -15,6 +15,5 @@ bool sp_movie_equal(const sp_movie& m1, const sp_movie& m2) {
     if (!m1 || !m2) {
         throw std::invalid_argument("Cannot compare null movie pointers");
     }
-    // Two movies are equal if neither is less than the other
     return !(*m1 < *m2) && !(*m2 < *m1);
 }
