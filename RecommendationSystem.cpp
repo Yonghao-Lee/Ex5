@@ -69,9 +69,9 @@ sp_movie RecommendationSystem::find_rec(const rank_map& ranks,
 }
 
 double RecommendationSystem::check_similarity(const sp_movie& movie1,
-                                            const sp_movie& movie2) {
+                                            const std::vector<double>& vec2) {
     const auto& features1 = movies_.at(movie1);
-    const auto& features2 = movies_.at(movie2);
+    const auto& features2 = vec2;
 
     double dot_product = 0.0;
     double norm1 = 0.0;
@@ -117,10 +117,10 @@ double RecommendationSystem::predict_movie_score(const User& user,
     const rank_map& ranks = user.get_ranks();
 
     // Use priority queue to maintain k most similar movies
-    std::priority_queue<std::pair<double, sp_movie>> pq;
+    std::priority_queue<std::pair<double, sp_movie> > pq;
 
     for (const auto& rated_movie : ranks) {
-        double similarity = check_similarity(rated_movie.first, movie);
+        double similarity = check_similarity(rated_movie.first, movies_.at(movie));
         pq.push({similarity, rated_movie.first});
         if (pq.size() > static_cast<size_t>(k)) {
             pq.pop();
