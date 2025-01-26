@@ -4,30 +4,25 @@
 #include <vector>
 #include <string>
 #include <map>
-#include <cmath>
 #include <memory>
+#include <cmath>
 #include "Movie.h"
 
 class User;
 
-/**
- * A comparator so that sp_movie is ordered by the underlying Movie::operator<,
- * i.e., ascending by (year, then name).
- */
 struct sp_movie_compare {
     bool operator()(const sp_movie &lhs, const sp_movie &rhs) const {
-        // If either pointer is null (unlikely), just compare addresses
         if (!lhs || !rhs) {
             return lhs < rhs;
         }
-        // Compare by the underlying Movie operator<
         return *lhs < *rhs;
     }
 };
 
 class RecommendationSystem {
 private:
-    // Sort keys by year/name
+    // Key = sp_movie, Value = feature vector
+    // Sorted by (year,name) because of sp_movie_compare
     std::map<sp_movie, std::vector<double>, sp_movie_compare> movies_features;
 
     double cosine_similarity(const std::vector<double>& v1,
@@ -45,10 +40,6 @@ public:
 
     sp_movie recommend_by_content(const User& user) const;
 
-    /**
-     * "Mean-offset" collaborative filtering rating prediction:
-     * pred(u,m) = avg(u) + sum( sim(m,i)*(r(u,i)-avg(u)) ) / sum( |sim(m,i)| ) for top-K i.
-     */
     double predict_movie_score(const User& user, const sp_movie& movie, int k);
 
     sp_movie recommend_by_cf(const User& user, int k);

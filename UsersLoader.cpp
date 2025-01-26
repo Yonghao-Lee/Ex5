@@ -7,47 +7,47 @@ std::vector<User> UsersLoader::create_users(
     std::shared_ptr<RecommendationSystem> rs)
 {
     std::ifstream file(users_file_path);
-    // If file can't open, return empty vector, no throw
     if (!file.is_open()) {
+        // no throw => empty
         return {};
     }
 
     std::vector<User> users;
     std::string line;
 
-    // First line: "User <movie1> <movie2> ..."
+    // first line is header "User <movie1> <movie2> ..."
     if (!std::getline(file, line)) {
-        return users; // no header => no users
+        return users;
     }
     std::istringstream header(line);
-    std::string skip_word;
-    header >> skip_word; // maybe "User"
+    std::string skip;
+    header >> skip; // probably "User"
 
     std::vector<sp_movie> movies;
-    // read each "Name-Year" from header
     std::string movie_info;
+
+    // read each "Name-Year" from header
     while (header >> movie_info) {
         size_t dash = movie_info.find_last_of('-');
-        if (dash != std::string::npos) {
-            std::string name = movie_info.substr(0, dash);
-            int year = 0;
-            try {
-                year = std::stoi(movie_info.substr(dash+1));
-            } catch(...) {
-                continue;
-            }
-            sp_movie mv = rs->get_movie(name, year);
-            if (mv) {
-                movies.push_back(mv);
-            }
+        if (dash == std::string::npos) {
+            continue;
+        }
+        std::string name = movie_info.substr(0, dash);
+        int year = 0;
+        try {
+            year = std::stoi(movie_info.substr(dash+1));
+        } catch(...) {
+            continue;
+        }
+        sp_movie mv = rs->get_movie(name, year);
+        if (mv) {
+            movies.push_back(mv);
         }
     }
 
-    // Now each subsequent line is "username rating1 rating2 ..."
+    // now read each user line
     while (std::getline(file, line)) {
-        if (line.empty()) {
-            continue;
-        }
+        if (line.empty()) { continue; }
         std::istringstream iss(line);
         std::string username;
         iss >> username;
@@ -55,26 +55,27 @@ std::vector<User> UsersLoader::create_users(
             continue;
         }
         rank_map ranks(0, sp_movie_hash, sp_movie_equal);
-        size_t idx = 0;
 
+        size_t idx = 0;
         while (idx < movies.size() && !iss.eof()) {
             std::string rating_str;
             iss >> rating_str;
+            if (rating_str == "NA") {
+                idx++;
+                continue;
+            }
             if (!iss.fail() && !rating_str.empty()) {
-                if (rating_str != "NA") {
-                    try {
-                        double val = std::stod(rating_str);
-                        // if (val < 1 || val > 10) { /* clamp or skip */}
-                        ranks[movies[idx]] = val;
-                    } catch(...) {
-                        // skip invalid
-                    }
+                try {
+                    double val = std::stod(rating_str);
+                    // skip out-of-range if needed
+                    ranks[movies[idx]] = val;
+                } catch(...) {
+                    // skip invalid
                 }
             }
-            ++idx;
+            idx++;
         }
-
-        // Only add user if they rated at least one movie
+        // add user if they rated at least 1 movie
         if (!ranks.empty()) {
             users.emplace_back(username, ranks, rs);
         }

@@ -4,11 +4,9 @@ void User::add_movie_to_user(const std::string &name, int year,
                              const std::vector<double> &features,
                              double rate)
 {
-    // skip or clamp if out of [1..10], no throw
-    // if (rate < 1 || rate > 10) { /* skip or clamp? */ }
-
+    // skip invalid rating or clamp if needed, no throw
     sp_movie mv = rs->add_movie_to_rs(name, year, features);
-    ratings[mv] = rate; // Overwrite if existed
+    ratings[mv] = rate;
 }
 
 sp_movie User::get_rs_recommendation_by_content() const {
@@ -30,21 +28,12 @@ double User::get_rs_prediction_score_for_movie(const std::string& name,
 }
 
 /**
- * PRINTING THE USER: some tests want an extra blank line
- * after each user's block of movies. So we add one more newline.
- *
- * For example, the expected output for test #9 has:
- *   name: Amani
- *   <Movie lines>
- *
- *   name: Lauren
- *   <Movie lines>
- *
- * i.e. a blank line separating them.
+ * We also insert a blank line after printing each user so that
+ * if the tests want spacing between users, we comply.
  */
 std::ostream& operator<<(std::ostream& os, const User& user) {
     os << "name: " << user.username << "\n";
-    os << *user.rs;         // prints all RS movies (sorted by year/name)
-    os << "\n";             // add a blank line after printing
+    os << *user.rs;
+    os << "\n";  // extra blank line
     return os;
 }
