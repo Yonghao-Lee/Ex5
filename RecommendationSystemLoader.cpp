@@ -6,14 +6,13 @@ std::unique_ptr<RecommendationSystem>
 RecommendationSystemLoader::create_rs_from_movies(const std::string& movies_file_path)
 {
     std::ifstream file(movies_file_path);
-    // if file can't open, just return an empty RS (no throw)
+    // if file not open, return empty RS
     if (!file.is_open()) {
         return std::make_unique<RecommendationSystem>();
     }
 
     auto rs = std::make_unique<RecommendationSystem>();
     std::string line;
-
     while (std::getline(file, line)) {
         if (line.empty()) { continue; }
         std::istringstream iss(line);
@@ -21,7 +20,7 @@ RecommendationSystemLoader::create_rs_from_movies(const std::string& movies_file
         iss >> movie_info;
         if (movie_info.empty()) { continue; }
 
-        // "Name-Year"
+        // parse "Name-Year"
         size_t dash = movie_info.find_last_of('-');
         if (dash == std::string::npos) {
             continue;
@@ -34,13 +33,16 @@ RecommendationSystemLoader::create_rs_from_movies(const std::string& movies_file
             continue;
         }
 
+        // read features
         std::vector<double> feats;
         double val;
         while (iss >> val) {
-            // skip/clamp if out of range, no throw
+            // we do NOT throw if val is out of [1..10]
             feats.push_back(val);
         }
+
         rs->add_movie_to_rs(name, year, feats);
     }
+
     return rs;
 }

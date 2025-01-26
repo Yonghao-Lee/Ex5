@@ -8,25 +8,23 @@ std::vector<User> UsersLoader::create_users(
 {
     std::ifstream file(users_file_path);
     if (!file.is_open()) {
-        // no throw => empty
+        // can't open => return empty
         return {};
     }
 
     std::vector<User> users;
     std::string line;
 
-    // first line is header "User <movie1> <movie2> ..."
+    // first line is header: "User <movie1> <movie2> ..."
     if (!std::getline(file, line)) {
         return users;
     }
     std::istringstream header(line);
-    std::string skip;
-    header >> skip; // probably "User"
+    std::string skip_word;
+    header >> skip_word; // maybe "User"
 
     std::vector<sp_movie> movies;
     std::string movie_info;
-
-    // read each "Name-Year" from header
     while (header >> movie_info) {
         size_t dash = movie_info.find_last_of('-');
         if (dash == std::string::npos) {
@@ -45,13 +43,15 @@ std::vector<User> UsersLoader::create_users(
         }
     }
 
-    // now read each user line
+    // read each user line
     while (std::getline(file, line)) {
-        if (line.empty()) { continue; }
+        if (line.empty()) {
+            continue;
+        }
         std::istringstream iss(line);
-        std::string username;
-        iss >> username;
-        if (username.empty()) {
+        std::string uname;
+        iss >> uname;
+        if (uname.empty()) {
             continue;
         }
         rank_map ranks(0, sp_movie_hash, sp_movie_equal);
@@ -67,7 +67,7 @@ std::vector<User> UsersLoader::create_users(
             if (!iss.fail() && !rating_str.empty()) {
                 try {
                     double val = std::stod(rating_str);
-                    // skip out-of-range if needed
+                    // skip or clamp out-of-range
                     ranks[movies[idx]] = val;
                 } catch(...) {
                     // skip invalid
@@ -75,9 +75,8 @@ std::vector<User> UsersLoader::create_users(
             }
             idx++;
         }
-        // add user if they rated at least 1 movie
         if (!ranks.empty()) {
-            users.emplace_back(username, ranks, rs);
+            users.emplace_back(uname, ranks, rs);
         }
     }
     return users;

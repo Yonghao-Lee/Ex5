@@ -12,9 +12,11 @@
 class Movie;
 typedef std::shared_ptr<Movie> sp_movie;
 
+/** Custom hashing & equality for sp_movie. */
 typedef std::size_t (*hash_func)(const sp_movie& movie);
 typedef bool (*equal_func)(const sp_movie& m1,const sp_movie& m2);
 
+/** Forward declares. */
 std::size_t sp_movie_hash(const sp_movie& movie);
 bool sp_movie_equal(const sp_movie& m1,const sp_movie& m2);
 
@@ -29,6 +31,9 @@ public:
     const std::string& get_name() const { return name; }
     int get_year() const { return year; }
 
+    /**
+     * Sort by year ascending, then name ascending
+     */
     bool operator<(const Movie& rhs) const {
         if (year != rhs.year) {
             return year < rhs.year;
@@ -36,6 +41,9 @@ public:
         return name < rhs.name;
     }
 
+    /**
+     * Print as "Name (Year)\n"
+     */
     friend std::ostream& operator<<(std::ostream& os, const Movie& movie) {
         os << movie.name << " (" << movie.year << ")\n";
         return os;
