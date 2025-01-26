@@ -1,5 +1,7 @@
 #include "User.h"
+#include "RecommendationSystem.h"
 #include <algorithm>
+#include <stdexcept>
 
 void User::add_movie_to_user(const std::string& name, int year,
                             const std::vector<double>& features, double rate) {
