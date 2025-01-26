@@ -8,7 +8,7 @@ const std::string& User::get_name() const {
     return _name;
 }
 
-const rank_map& User::get_ranks() const {
+const rank_map& User::get_rank() const {
     return _ranks;
 }
 
