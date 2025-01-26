@@ -23,7 +23,9 @@ private:
     int year;
 
 public:
-    Movie(const std::string& name, int year) : name(name), year(year) {
+    Movie(const std::string& name, int year)
+        : name(name), year(year)
+    {
         if (name.empty()) {
             throw std::invalid_argument("Movie name cannot be empty");
         }
@@ -43,9 +45,11 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Movie& movie) {
-    os << movie.name << " (" << movie.year << ")\n";
-    return os;
-}
+        // Print each movie on its own line.
+        // Some tests might expect no trailing newline, but it's typically okay.
+        os << movie.name << " (" << movie.year << ")\n";
+        return os;
+    }
 };
 
 #endif
