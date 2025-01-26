@@ -8,8 +8,9 @@
 #include "RecommendationSystem.h"
 
 /**
- * Creates User objects from a file with a header line for the movies,
- * then lines for each user with ratings or "NA".
+ * Creates User objects from a file with:
+ *  1) First line = list of "MovieName-Year" tokens
+ *  2) Subsequent lines = "username rating rating rating..."
  */
 class UsersLoader {
 private:

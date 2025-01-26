@@ -26,15 +26,15 @@ sp_movie User::get_rs_recommendation_by_content() const {
     if (!rs) {
         throw std::runtime_error("No RecommendationSystem");
     }
-    // Possibly if empty => throw or return nullptr, but let's let the RS handle it
-    return rs->recommend_by_content(*this); // might throw
+    // Let the RS function throw or succeed
+    return rs->recommend_by_content(*this);
 }
 
 sp_movie User::get_rs_recommendation_by_cf(int k) const {
     if (!rs) {
         throw std::runtime_error("No RecommendationSystem");
     }
-    return rs->recommend_by_cf(*this, k); // might throw
+    return rs->recommend_by_cf(*this, k);
 }
 
 double User::get_rs_prediction_score_for_movie(const std::string& name,
@@ -42,7 +42,7 @@ double User::get_rs_prediction_score_for_movie(const std::string& name,
                                                int k) const
 {
     if (!rs || k <= 0) {
-        return 0; // minimal fallback
+        return 0;
     }
     try {
         sp_movie mv = rs->get_movie(name, year);
@@ -52,7 +52,7 @@ double User::get_rs_prediction_score_for_movie(const std::string& name,
         }
         return rs->predict_movie_score(*this, mv, k);
     } catch (...) {
-        return 0; // On error, return 0
+        return 0;
     }
 }
 
@@ -67,7 +67,7 @@ std::ostream& operator<<(std::ostream& os, const User& user) {
             sorted.push_back(mv);
         }
         std::sort(sorted.begin(), sorted.end(),
-                  [](const sp_movie& a, const sp_movie& b){
+                  [](const sp_movie& a, const sp_movie& b) {
                       return *a < *b;
                   });
         for (auto const& m : sorted) {

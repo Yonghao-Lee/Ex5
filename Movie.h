@@ -14,6 +14,7 @@ typedef std::shared_ptr<Movie> sp_movie;
 typedef std::size_t (*hash_func)(const sp_movie& movie);
 typedef bool (*equal_func)(const sp_movie& m1, const sp_movie& m2);
 
+// Hash + equality for using sp_movie in std::unordered_map
 std::size_t sp_movie_hash(const sp_movie& movie);
 bool sp_movie_equal(const sp_movie& m1, const sp_movie& m2);
 
@@ -37,6 +38,7 @@ public:
     const std::string& get_name() const { return name; }
     int get_year() const { return year; }
 
+    // Compare first by year, then by name
     bool operator<(const Movie& rhs) const {
         if (year != rhs.year) {
             return year < rhs.year;
@@ -45,8 +47,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Movie& movie) {
-        // Print each movie on its own line.
-        // Some tests might expect no trailing newline, but it's typically okay.
+        // Print each movie: "Name (Year)\n"
         os << movie.name << " (" << movie.year << ")\n";
         return os;
     }
