@@ -9,7 +9,8 @@
 #include <memory>
 #include <stdexcept>
 #include "Movie.h"
-#include<algorithm>
+#include "User.h"
+#include <algorithm>
 
 class User;
 class RecommendationSystemLoader;
@@ -70,20 +71,22 @@ public:
 
     sp_movie recommend_by_cf(const User& user, int k);
 
-  friend std::ostream& operator<<(std::ostream& os, const RecommendationSystem& rs) {
-    // Sort the movies according to the Movie comparison operator (<)
+std::ostream& operator<<(std::ostream& os, const RecommendationSystem& rs) {
     std::vector<sp_movie> sorted_movies;
     for (const auto& [movie, _] : rs.movies_features) {
         sorted_movies.push_back(movie);
     }
+
     std::sort(sorted_movies.begin(), sorted_movies.end(),
               [](const sp_movie& a, const sp_movie& b) {
                   return *a < *b;
               });
 
-    // Output each movie using the Movie output operator
-    for (const auto& movie : sorted_movies) {
-        os << *movie;
+    for (size_t i = 0; i < sorted_movies.size(); ++i) {
+        os << *sorted_movies[i];
+        if (i < sorted_movies.size() - 1) {
+            os << std::endl;
+        }
     }
     return os;
 }

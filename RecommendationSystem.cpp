@@ -5,7 +5,7 @@
 #include <limits>
 #include <queue>
 
-// RecommendationSystem.cpp
+
 
 double RecommendationSystem::cosine_similarity(
     const std::vector<double>& v1, const std::vector<double>& v2) const {
@@ -268,3 +268,4 @@ sp_movie RecommendationSystem::recommend_by_cf(const User& user_rankings, int k)
         return nullptr;
     }
 }
+

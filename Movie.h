@@ -83,10 +83,10 @@ public:
      * @param movie Movie to output
      * @return Reference to output stream
      */
-    friend std::ostream& operator<<(std::ostream& os, const Movie& movie) {
-        os << movie.name << " (" << movie.year << ")" << std::endl;
-        return os;
-    }
+  friend std::ostream& operator<<(std::ostream& os, const Movie& movie) {
+    os << movie.name << " (" << movie.year << ")";
+    return os;
+}
 };
 
 #endif
