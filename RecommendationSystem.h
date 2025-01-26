@@ -2,18 +2,13 @@
 #ifndef RECOMMENDATIONSYSTEM_H
 #define RECOMMENDATIONSYSTEM_H
 
-#include <vector>
-#include <string>
 #include <map>
-#include <cmath>
+#include <vector>
 #include <memory>
-#include <stdexcept>
+#include <string>
 #include "Movie.h"
-#include "User.h"
-#include <algorithm>
 
 class User;
-class RecommendationSystemLoader;
 
 class RecommendationSystem {
 private:
@@ -71,26 +66,10 @@ public:
 
     sp_movie recommend_by_cf(const User& user, int k);
 
-std::ostream& operator<<(std::ostream& os, const RecommendationSystem& rs) {
-    std::vector<sp_movie> sorted_movies;
-    for (const auto& [movie, _] : rs.movies_features) {
-        sorted_movies.push_back(movie);
-    }
-
-    std::sort(sorted_movies.begin(), sorted_movies.end(),
-              [](const sp_movie& a, const sp_movie& b) {
-                  return *a < *b;
-              });
-
-    for (size_t i = 0; i < sorted_movies.size(); ++i) {
-        os << *sorted_movies[i];
-        if (i < sorted_movies.size() - 1) {
-            os << std::endl;
-        }
-    }
-    return os;
 }
     friend class RecommendationSystemLoader;
 };
+
+std::ostream& operator<<(std::ostream& os, const RecommendationSystem& rs);
 
 #endif
