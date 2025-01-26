@@ -26,13 +26,13 @@ std::vector<User> UsersLoader::create_users(
 
     // The header looks like: "USER mov1-year mov2-year mov3-year ..."
     std::istringstream header(line);
-    std::string skip; // will hold the first token, "USER" presumably
+    std::string skip; // typically "USER"
     header >> skip;
 
     std::vector<sp_movie> movies_in_header;
     std::string movie_info;
 
-    // For each "mov-name-year" in the header, parse it
+    // For each "movName-year" in the header, parse it
     while (header >> movie_info) {
         size_t pos = movie_info.rfind('-');
         if (pos == std::string::npos || pos == 0 || pos == movie_info.size()-1) {
@@ -56,7 +56,7 @@ std::vector<User> UsersLoader::create_users(
     // Now read each subsequent line for a user
     int line_number = 1;
     while (std::getline(file, line)) {
-        line_number++;
+        ++line_number;
         if (line.empty()) {
             continue;
         }
@@ -69,6 +69,7 @@ std::vector<User> UsersLoader::create_users(
         }
 
         rank_map user_ratings(0, sp_movie_hash, sp_movie_equal);
+
         // Now read rating or "NA" for each movie in movies_in_header
         for (size_t i = 0; i < movies_in_header.size(); i++) {
             std::string rating_str;

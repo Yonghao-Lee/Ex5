@@ -3,13 +3,12 @@
 #include <algorithm>
 #include <limits>
 #include <queue>
-#include <cmath> // for std::sqrt
-#include <stdexcept>
-#include <iostream> // for std::cerr
+#include <cmath>      // for std::sqrt
+#include <stdexcept>  // for exceptions
+#include <iostream>   // for std::cerr
 
 double RecommendationSystem::cosine_similarity(
     const std::vector<double>& v1, const std::vector<double>& v2) const {
-    // More robust similarity calculation
     try {
         if (v1.size() != v2.size()) {
             throw std::invalid_argument("Vectors must be of equal size");
@@ -35,7 +34,7 @@ double RecommendationSystem::cosine_similarity(
         norm2 = std::sqrt(norm2);
 
         double similarity = dot_product / (norm1 * norm2);
-        // Clamp the result to [-1, 1]
+        // clamp to [-1, 1]
         if (similarity < -1.0) similarity = -1.0;
         if (similarity > 1.0)  similarity = 1.0;
 
@@ -47,14 +46,14 @@ double RecommendationSystem::cosine_similarity(
 }
 
 sp_movie RecommendationSystem::get_movie(const std::string& name, int year) const {
-    // Attempt direct lookup using a temporary sp_movie
+    // Attempt direct lookup
     sp_movie temp = std::make_shared<Movie>(name, year);
     auto it = movies_features.find(temp);
     if (it != movies_features.end()) {
         return it->first;
     }
 
-    // Otherwise, fallback to linear search (in case hashing or comparison is unexpected)
+    // Otherwise fallback to linear search
     for (const auto& [movie, _] : movies_features) {
         if (movie->get_name() == name && movie->get_year() == year) {
             return movie;
@@ -90,7 +89,6 @@ std::vector<double> RecommendationSystem::get_preference_vector(const User& user
     double sum_ratings = 0.0;
     int count = 0;
     for (const auto& [mv, rating] : rankings) {
-        // Only consider movies that actually exist in the system
         if (movies_features.find(mv) != movies_features.end()) {
             sum_ratings += rating;
             ++count;
@@ -118,7 +116,7 @@ std::vector<double> RecommendationSystem::get_preference_vector(const User& user
         }
     }
 
-    // Normalize it
+    // Normalize
     double norm = 0.0;
     for (double val : preference) {
         norm += val * val;
@@ -155,12 +153,12 @@ sp_movie RecommendationSystem::recommend_by_content(const User& user) const {
     try {
         std::vector<double> pref = get_preference_vector(user);
 
-        sp_movie best;
+        sp_movie best = nullptr;
         double best_score = -1.0;
 
         const auto& user_ratings = user.get_rank();
         for (const auto& [movie, feats] : movies_features) {
-            // Skip already-rated
+            // Skip already-rated movies
             if (user_ratings.find(movie) != user_ratings.end()) {
                 continue;
             }
@@ -190,20 +188,22 @@ double RecommendationSystem::predict_movie_score(const User& user, const sp_movi
         throw std::runtime_error("User has no ratings");
     }
 
-    // Get the target movie's feature vector
-    const auto& target_features = movies_features.at(movie);
+    // Get the target movie's features
+    auto it = movies_features.find(movie);
+    if (it == movies_features.end()) {
+        throw std::runtime_error("Movie not found in the system");
+    }
+    const std::vector<double>& target_features = it->second;
 
     // Calculate similarity to each rated movie
-    std::vector<std::pair<double, double>> sims; // (similarity, user rating)
+    std::vector<std::pair<double, double>> sims; // (similarity, rating)
     sims.reserve(user_ratings.size());
     for (const auto& [rated_mv, rating] : user_ratings) {
-        // Only handle movies that are in the system
-        auto it = movies_features.find(rated_mv);
-        if (it == movies_features.end()) {
+        auto it_rated = movies_features.find(rated_mv);
+        if (it_rated == movies_features.end()) {
             continue;
         }
-        double sim = cosine_similarity(target_features, it->second);
-        // If sim is valid:
+        double sim = cosine_similarity(target_features, it_rated->second);
         if (sim > -1.0) {
             sims.push_back({sim, rating});
         }
@@ -212,32 +212,28 @@ double RecommendationSystem::predict_movie_score(const User& user, const sp_movi
         throw std::runtime_error("No valid similarities found for user");
     }
 
-    // partial_sort top k by similarity descending
-    if (static_cast<int>(sims.size()) > k) {
+    // partial_sort top k by sim descending
+    if ((int)sims.size() > k) {
         std::partial_sort(
             sims.begin(), sims.begin() + k, sims.end(),
             [](auto const & a, auto const & b){
-                return a.first > b.first; // descending
+                return a.first > b.first;
             }
         );
         sims.resize(k);
     } else {
-        std::sort(
-            sims.begin(), sims.end(),
-            [](auto const & a, auto const & b){
-                return a.first > b.first; // descending
-            }
-        );
+        std::sort(sims.begin(), sims.end(),
+                  [](auto const & a, auto const & b){
+                      return a.first > b.first;
+                  });
     }
 
     // Weighted average
     double sum_sim = 0.0;
     double sum_weighted = 0.0;
-    for (auto & p : sims) {
-        double sim = p.first;
-        double rating = p.second;
-        sum_sim += sim;
-        sum_weighted += sim * rating;
+    for (auto & [similarity, user_rating] : sims) {
+        sum_sim += similarity;
+        sum_weighted += similarity * user_rating;
     }
 
     if (sum_sim < 1e-12) {
@@ -260,7 +256,7 @@ sp_movie RecommendationSystem::recommend_by_cf(const User& user, int k) {
         double best_score = std::numeric_limits<double>::lowest();
 
         for (const auto& [movie, feats] : movies_features) {
-            // Skip movies the user already rated
+            // Skip movies user already rated
             if (user_ratings.find(movie) != user_ratings.end()) {
                 continue;
             }
@@ -277,22 +273,22 @@ sp_movie RecommendationSystem::recommend_by_cf(const User& user, int k) {
 }
 
 std::ostream& operator<<(std::ostream& os, const RecommendationSystem& rs) {
-    // Retrieve movies in ascending order (by year, then name)
+    // Retrieve all movies and sort them
     std::vector<sp_movie> sorted;
     sorted.reserve(rs.get_movies().size());
-
     for (auto const & [mv, _] : rs.get_movies()) {
         sorted.push_back(mv);
     }
-    std::sort(sorted.begin(), sorted.end(), [](const sp_movie& a, const sp_movie& b){
-        return *a < *b;
-    });
 
-    for (size_t i = 0; i < sorted.size(); i++) {
-        os << *sorted[i];
-        if (i + 1 < sorted.size()) {
-            os << '\n';
-        }
+    std::sort(sorted.begin(), sorted.end(),
+              [](const sp_movie& a, const sp_movie& b){
+                  return *a < *b; // uses Movie::operator<
+              });
+
+    // Print each movie on its own line
+    for (auto const & mv : sorted) {
+        os << *mv << "\n";
     }
+
     return os;
 }

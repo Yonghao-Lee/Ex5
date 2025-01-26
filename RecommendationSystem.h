@@ -10,6 +10,10 @@
 // Forward-declare User to avoid circular includes
 class User;
 
+/**
+ * RecommendationSystem manages a collection of movies with their feature vectors,
+ * and provides methods for recommending movies by content-based or CF methods.
+ */
 class RecommendationSystem {
 private:
     // Maps movies to their feature vectors
@@ -17,26 +21,20 @@ private:
 
     /**
      * Validates that feature values are within acceptable range (1-10)
-     * @param features Vector of feature values to validate
-     * @throws std::invalid_argument if features are invalid
+     * @throws std::invalid_argument if features are invalid or size mismatch
      */
     void validate_feature_vector(const std::vector<double>& features) const;
 
     /**
      * Computes cosine similarity between two feature vectors
-     * @param v1 First feature vector
-     * @param v2 Second feature vector
-     * @return Similarity score between -1 and 1
-     * @throws std::invalid_argument if vectors have different sizes
+     * @throws std::invalid_argument if v1,v2 have different sizes
      */
     double cosine_similarity(const std::vector<double>& v1,
                             const std::vector<double>& v2) const;
 
     /**
-     * Generates user preference vector based on their ratings
-     * @param user User whose preferences to analyze
-     * @return Vector representing user's preferences
-     * @throws std::runtime_error if user has no valid ratings
+     * Generates user preference vector from the user's rated movies
+     * @throws std::runtime_error if user has no valid ratings in the system
      */
     std::vector<double> get_preference_vector(const User& user) const;
 
@@ -51,17 +49,13 @@ public:
     }
 
     /**
-     * Returns the sp_movie for the given name+year, or nullptr if it doesn't exist
+     * Finds a movie by (name, year) or returns nullptr if not found
      */
     sp_movie get_movie(const std::string& name, int year) const;
 
     /**
-     * Adds a new movie to the recommendation system
-     * @param name Movie name
-     * @param year Release year
-     * @param features Vector of movie features (must be 1..10)
-     * @return Shared pointer to the created/existing movie
-     * @throws std::invalid_argument if features are invalid
+     * Adds a new movie to the recommendation system or returns the existing one
+     * if it already exists
      */
     sp_movie add_movie_to_rs(const std::string& name, int year,
                              const std::vector<double>& features);
@@ -72,7 +66,8 @@ public:
     sp_movie recommend_by_content(const User& user) const;
 
     /**
-     * Predicts user rating for a given movie using CF
+     * Predicts a user rating for a given movie using CF
+     * @throws std::invalid_argument if k <= 0 or movie is null
      */
     double predict_movie_score(const User& user, const sp_movie& movie, int k);
 
@@ -81,13 +76,13 @@ public:
      */
     sp_movie recommend_by_cf(const User& user, int k);
 
-    // Give RecommendationSystemLoader friend access (to allow direct access if needed)
+    // Give RecommendationSystemLoader friend access (to allow direct access).
     friend class RecommendationSystemLoader;
 };
 
 /**
- * Prints all movies in the system in ascending order (by year then name)
- * Format: each line "name (year)"
+ * Prints all movies in ascending order (year then name),
+ * each movie on its own line as "<name> (<year>)".
  */
 std::ostream& operator<<(std::ostream& os, const RecommendationSystem& rs);
 

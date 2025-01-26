@@ -4,8 +4,8 @@
 #include <stdexcept>
 #include <iostream>
 
-std::unique_ptr<RecommendationSystem> RecommendationSystemLoader::create_rs_from_movies(
-    const std::string& movies_file_path)
+std::unique_ptr<RecommendationSystem>
+RecommendationSystemLoader::create_rs_from_movies(const std::string& movies_file_path)
 {
     std::ifstream file(movies_file_path);
     if (!file.is_open()) {
@@ -18,7 +18,7 @@ std::unique_ptr<RecommendationSystem> RecommendationSystemLoader::create_rs_from
     size_t expected_features = 0;
 
     while (std::getline(file, line)) {
-        line_number++;
+        ++line_number;
         if (line.empty()) {
             continue;
         }
@@ -42,7 +42,7 @@ std::unique_ptr<RecommendationSystem> RecommendationSystemLoader::create_rs_from
             std::string name = movie_info.substr(0, pos);
             int year = std::stoi(movie_info.substr(pos + 1));
 
-            // Parse the feature values
+            // Parse feature values
             double feature;
             while (iss >> feature) {
                 if (feature < 1.0 || feature > 10.0) {
@@ -54,7 +54,9 @@ std::unique_ptr<RecommendationSystem> RecommendationSystemLoader::create_rs_from
             // Validate consistent feature count
             if (line_number == 1) {
                 expected_features = features.size();
-            } else if (!features.empty() && features.size() != expected_features) {
+            } else if (!features.empty() &&
+                       features.size() != expected_features)
+            {
                 throw std::runtime_error("Inconsistent feature count");
             }
 

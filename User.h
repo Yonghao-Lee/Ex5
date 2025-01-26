@@ -4,10 +4,10 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
-#include <memory> // for std::shared_ptr
+#include <memory>  // for std::shared_ptr
 #include "Movie.h"
 
-// Forward declare RecommendationSystem
+// Forward declare RecommendationSystem to avoid circular include
 class RecommendationSystem;
 
 typedef std::unordered_map<sp_movie, double,
@@ -26,9 +26,6 @@ private:
 public:
     /**
      * Constructor for User class
-     * @param username User's name
-     * @param rankings Map of movies and their ratings
-     * @param rs Shared pointer to the recommendation system
      * @throws std::invalid_argument if username empty or rs == nullptr
      */
     User(const std::string& username,
@@ -71,7 +68,12 @@ public:
                                              int year, int k) const;
 
     /**
-     * Prints user's name and the full list of movies in the system
+     * Prints:
+     * name: <username>
+     * <movieName1> (<year1>)
+     * <movieName2> (<year2>)
+     * ...
+     * for all movies in the system, in ascending order (year then name).
      */
     friend std::ostream& operator<<(std::ostream& os, const User& user);
 };
