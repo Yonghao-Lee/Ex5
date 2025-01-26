@@ -1,100 +1,93 @@
-// UsersLoader.cpp
 #include "UsersLoader.h"
 #include <fstream>
 #include <sstream>
+#include <stdexcept>
 
 std::vector<User> UsersLoader::create_users(
     const std::string& users_file_path,
-    std::shared_ptr<RecommendationSystem> rs) {
-
-    // Validate input
+    std::shared_ptr<RecommendationSystem> rs)
+{
     if (!rs) {
         throw std::invalid_argument("Recommendation system cannot be null");
     }
 
-    // Open and validate file
     std::ifstream file(users_file_path);
     if (!file.is_open()) {
         throw std::runtime_error("Could not open users file: " + users_file_path);
     }
 
     std::vector<User> users;
-    users.reserve(10);
     std::string line;
 
-    // Read and validate header
+    // Read header line
     if (!std::getline(file, line)) {
         throw std::runtime_error("Empty users file");
     }
 
-    // Parse header to get movie information
+    // The header looks like: "USER mov1-year mov2-year mov3-year ..."
     std::istringstream header(line);
-    std::vector<sp_movie> movies;
+    std::string skip; // will hold the first token, "USER" presumably
+    header >> skip;
+
+    std::vector<sp_movie> movies_in_header;
     std::string movie_info;
 
-    // Skip username column header
-    header >> movie_info;
-
-    // Parse movie headers and validate movies exist in RS
+    // For each "mov-name-year" in the header, parse it
     while (header >> movie_info) {
-        try {
-            size_t pos = movie_info.rfind('-');
-            if (pos == std::string::npos || pos == 0 || pos == movie_info.length() - 1) {
-                throw std::runtime_error("Invalid movie format in header: " + movie_info);
-            }
-
-            std::string name = movie_info.substr(0, pos);
-            int year = std::stoi(movie_info.substr(pos + 1));
-
-            sp_movie movie = rs->get_movie(name, year);
-            if (!movie) {
-                throw std::runtime_error("Movie not found in RS: " + movie_info);
-            }
-            movies.push_back(movie);
-        } catch (const std::exception& e) {
-            throw std::runtime_error("Header parsing error: " + std::string(e.what()));
+        size_t pos = movie_info.rfind('-');
+        if (pos == std::string::npos || pos == 0 || pos == movie_info.size()-1) {
+            throw std::runtime_error("Invalid movie format in header: " + movie_info);
         }
+        std::string name = movie_info.substr(0, pos);
+        int year = std::stoi(movie_info.substr(pos + 1));
+
+        // Make sure the movie is in the RS
+        sp_movie mv = rs->get_movie(name, year);
+        if (!mv) {
+            throw std::runtime_error("Movie not found in RS: " + movie_info);
+        }
+        movies_in_header.push_back(mv);
     }
 
-    if (movies.empty()) {
+    if (movies_in_header.empty()) {
         throw std::runtime_error("No valid movies found in header");
     }
 
-    // Read user data
+    // Now read each subsequent line for a user
     int line_number = 1;
     while (std::getline(file, line)) {
         line_number++;
-        if (line.empty()) continue;
+        if (line.empty()) {
+            continue;
+        }
+        std::istringstream iss(line);
 
-        try {
-            std::istringstream iss(line);
-            std::string username;
-            if (!(iss >> username)) {
-                throw std::runtime_error("Invalid username format");
+        std::string username;
+        if (!(iss >> username)) {
+            throw std::runtime_error("Invalid username format on line "
+                                     + std::to_string(line_number));
+        }
+
+        rank_map user_ratings(0, sp_movie_hash, sp_movie_equal);
+        // Now read rating or "NA" for each movie in movies_in_header
+        for (size_t i = 0; i < movies_in_header.size(); i++) {
+            std::string rating_str;
+            if (!(iss >> rating_str)) {
+                // If there's no token, treat it like "NA" or break
+                break;
             }
-
-            rank_map rankings(0, sp_movie_hash, sp_movie_equal);
-            std::string rating;
-            size_t movie_idx = 0;
-
-            while (iss >> rating && movie_idx < movies.size()) {
-                if (rating != "NA") {
-                    double rate = std::stod(rating);
-                    if (rate < 1 || rate > 10) {
-                        throw std::runtime_error("Rating must be between 1 and 10");
-                    }
-                    rankings[movies[movie_idx]] = rate;
+            if (rating_str != "NA") {
+                double rate = std::stod(rating_str);
+                if (rate < 1.0 || rate > 10.0) {
+                    throw std::runtime_error("Rating must be between 1 and 10");
                 }
-                movie_idx++;
+                user_ratings[movies_in_header[i]] = rate;
             }
+        }
 
-            // Only create user if they have valid ratings
-            if (!rankings.empty()) {
-                users.emplace_back(username, rankings, rs);
-            }
-        } catch (const std::exception& e) {
-            throw std::runtime_error("Error at line " + std::to_string(line_number) +
-                                   ": " + std::string(e.what()));
+        // Only create a User if they have at least one valid rating
+        if (!user_ratings.empty()) {
+            users.emplace_back(username, user_ratings, rs);
         }
     }
 

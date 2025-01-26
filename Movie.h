@@ -1,4 +1,3 @@
-// Movie.h
 #ifndef EX5_MOVIE_H
 #define EX5_MOVIE_H
 
@@ -44,7 +43,9 @@ public:
      * @param year Release year of the movie
      * @throws std::invalid_argument if name is empty or year is invalid
      */
-    Movie(const std::string& name, int year) : name(name), year(year) {
+    Movie(const std::string& name, int year)
+        : name(name), year(year)
+    {
         if (name.empty()) {
             throw std::invalid_argument("Movie name cannot be empty");
         }
@@ -83,10 +84,10 @@ public:
      * @param movie Movie to output
      * @return Reference to output stream
      */
-  friend std::ostream& operator<<(std::ostream& os, const Movie& movie) {
-    os << movie.name << " (" << movie.year << ")";
-    return os;
-}
+    friend std::ostream& operator<<(std::ostream& os, const Movie& movie) {
+        os << movie.name << " (" << movie.year << ")";
+        return os;
+    }
 };
 
 #endif

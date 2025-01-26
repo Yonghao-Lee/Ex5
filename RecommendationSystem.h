@@ -1,4 +1,3 @@
-// RecommendationSystem.h
 #ifndef RECOMMENDATIONSYSTEM_H
 #define RECOMMENDATIONSYSTEM_H
 
@@ -8,6 +7,7 @@
 #include <string>
 #include "Movie.h"
 
+// Forward-declare User to avoid circular includes
 class User;
 
 class RecommendationSystem {
@@ -30,7 +30,7 @@ private:
      * @throws std::invalid_argument if vectors have different sizes
      */
     double cosine_similarity(const std::vector<double>& v1,
-                           const std::vector<double>& v2) const;
+                            const std::vector<double>& v2) const;
 
     /**
      * Generates user preference vector based on their ratings
@@ -43,33 +43,52 @@ private:
 public:
     RecommendationSystem() = default;
 
+    /**
+     * Access all movies stored in this system
+     */
     const std::map<sp_movie, std::vector<double>>& get_movies() const {
-    return movies_features;
-}
+        return movies_features;
+    }
 
+    /**
+     * Returns the sp_movie for the given name+year, or nullptr if it doesn't exist
+     */
     sp_movie get_movie(const std::string& name, int year) const;
 
     /**
      * Adds a new movie to the recommendation system
      * @param name Movie name
      * @param year Release year
-     * @param features Vector of movie features
+     * @param features Vector of movie features (must be 1..10)
      * @return Shared pointer to the created/existing movie
      * @throws std::invalid_argument if features are invalid
      */
     sp_movie add_movie_to_rs(const std::string& name, int year,
-                            const std::vector<double>& features);
+                             const std::vector<double>& features);
 
+    /**
+     * Recommends a movie by content-based filtering
+     */
     sp_movie recommend_by_content(const User& user) const;
 
+    /**
+     * Predicts user rating for a given movie using CF
+     */
     double predict_movie_score(const User& user, const sp_movie& movie, int k);
 
+    /**
+     * Recommends a movie by collaborative filtering
+     */
     sp_movie recommend_by_cf(const User& user, int k);
 
-}
+    // Give RecommendationSystemLoader friend access (to allow direct access if needed)
     friend class RecommendationSystemLoader;
 };
 
+/**
+ * Prints all movies in the system in ascending order (by year then name)
+ * Format: each line "name (year)"
+ */
 std::ostream& operator<<(std::ostream& os, const RecommendationSystem& rs);
 
 #endif

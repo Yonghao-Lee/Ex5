@@ -17,4 +17,4 @@ public:
         std::shared_ptr<RecommendationSystem> rs);
 };
 
-#endif // USERSLOADER_H
+#endif

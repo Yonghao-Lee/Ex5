@@ -1,10 +1,11 @@
-// RecommendationSystemLoader.h
 #ifndef RECOMMENDATIONSYSTEMLOADER_H
 #define RECOMMENDATIONSYSTEMLOADER_H
 
 #include "RecommendationSystem.h"
 #include <memory>
 #include <string>
+#include <tuple>
+#include <vector>
 
 class RecommendationSystemLoader {
 private:
