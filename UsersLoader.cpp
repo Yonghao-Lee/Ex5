@@ -19,54 +19,54 @@ std::vector<User> UsersLoader::create_users(const std::string& users_file_path,
     std::vector<User> users;
     std::string line;
 
-    // -- 1) Read the full header line --
+    // 1) Read the entire header line:
     if (!std::getline(file, line)) {
         throw std::runtime_error("Empty users file (no header line)");
     }
     std::istringstream header_line(line);
 
-    // -- 2) Discard the FIRST token, which is presumably "USER" --
-    std::string first_token;
-    if (!(header_line >> first_token)) {
-        throw std::runtime_error("Invalid header format (no first token)");
+    // 2) Check the FIRST token:
+    std::string maybe_user;
+    if (!(header_line >> maybe_user)) {
+        throw std::runtime_error("Invalid header line: no tokens");
     }
-    // We do not check if first_token == "USER"; we just discard it.
 
-    // -- 3) Now parse all remaining tokens in the header line as "MovieName-Year" --
     std::vector<sp_movie> header_movies;
     std::string movie_info;
-    while (header_line >> movie_info) {
-        // e.g. "BrokebackMountain-1966"
-        size_t pos = movie_info.rfind('-');
-        if (pos == std::string::npos || pos == 0 || pos == movie_info.size() - 1) {
-            throw std::runtime_error("Invalid movie format in header: " + movie_info);
-        }
-        std::string name = movie_info.substr(0, pos);
-        int year = std::stoi(movie_info.substr(pos + 1));
 
-        // ask RS for the movie pointer
-        sp_movie mov = rs->get_movie(name, year);
-        if (!mov) {
-            // The test expects that the RS already has such a movie from its .in_m file
-            throw std::runtime_error("Movie not found in RS: " + movie_info);
+    // 3) If the first token is literally "USER", skip it:
+    if (maybe_user == "USER")
+    {
+        // Then parse the rest of the header line as "MovieName-Year"
+        while (header_line >> movie_info) {
+            header_movies.push_back( parseMovieFromHeader(movie_info, rs) );
         }
-        header_movies.push_back(mov);
+    }
+    else
+    {
+        // The first token is already a "MovieName-Year"
+        header_movies.push_back( parseMovieFromHeader(maybe_user, rs) );
+
+        // Now parse any remaining tokens on that line as well
+        while (header_line >> movie_info) {
+            header_movies.push_back( parseMovieFromHeader(movie_info, rs) );
+        }
     }
 
     if (header_movies.empty()) {
-        throw std::runtime_error("No movies found in header after skipping first token");
+        throw std::runtime_error("No movies found in header line");
     }
 
-    // -- 4) For each subsequent line => parse username + ratings --
+    // 4) Now read each subsequent line => parse username + numeric ratings
     while (std::getline(file, line)) {
         if (line.empty()) {
-            continue;
+            continue;  // skip blank lines
         }
 
         std::istringstream iss(line);
         std::string username;
         if (!(iss >> username)) {
-            // If we can't read a user name, skip
+            // If we fail to read a username from this line, skip it
             continue;
         }
 
@@ -76,22 +76,43 @@ std::vector<User> UsersLoader::create_users(const std::string& users_file_path,
 
         while (iss >> rating_str && movie_idx < header_movies.size()) {
             if (rating_str != "NA") {
-                double r_val = std::stod(rating_str);
-                if (r_val < 1.0 || r_val > 10.0) {
+                double val = std::stod(rating_str);
+                if (val < 1.0 || val > 10.0) {
                     throw std::runtime_error("Rating must be in [1..10], got: " + rating_str);
                 }
-                ratings[header_movies[movie_idx]] = r_val;
+                ratings[header_movies[movie_idx]] = val;
             }
             movie_idx++;
         }
 
-        // Always create the user, even if ratings is empty
+        // Always create a User object, even if they gave 0 numeric ratings
         users.emplace_back(username, ratings, rs);
     }
 
     if (users.empty()) {
-        throw std::runtime_error("No valid users found after header line");
+        throw std::runtime_error("No valid users found after parsing all lines");
     }
 
     return users;
+}
+
+// A small helper function that parses "MovieName-Year" from the header
+// and retrieves it from the RecommendationSystem.
+sp_movie UsersLoader::parseMovieFromHeader(const std::string& movie_info,
+                                           std::shared_ptr<RecommendationSystem> rs)
+{
+    // e.g. "BrokebackMountain-1966"
+    size_t pos = movie_info.rfind('-');
+    if (pos == std::string::npos || pos == 0 || pos == movie_info.size() - 1) {
+        throw std::runtime_error("Invalid movie format in header: " + movie_info);
+    }
+    std::string name = movie_info.substr(0, pos);
+    int year = std::stoi(movie_info.substr(pos + 1));
+
+    sp_movie mov = rs->get_movie(name, year);
+    if (!mov) {
+        // The test .in_m file presumably has this movie. If not found => fail.
+        throw std::runtime_error("Movie not found in RS: " + movie_info);
+    }
+    return mov;
 }
