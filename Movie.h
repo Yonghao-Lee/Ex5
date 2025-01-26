@@ -43,9 +43,9 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Movie& movie) {
-        os << movie.name << " (" << movie.year << ")";
-        return os;
-    }
+    os << movie.name << " (" << movie.year << ")\n";
+    return os;
+}
 };
 
 #endif

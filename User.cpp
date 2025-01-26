@@ -30,9 +30,7 @@ sp_movie User::get_rs_recommendation_by_content() const {
 }
 
 sp_movie User::get_rs_recommendation_by_cf(int k) const {
-    if (!rs || k <= 0 || ratings.empty()) {
-        return nullptr;
-    }
+    if (!rs || k <= 0 || ratings.empty()) return nullptr;
     try {
         return rs->recommend_by_cf(*this, k);
     } catch (...) {
@@ -42,14 +40,10 @@ sp_movie User::get_rs_recommendation_by_cf(int k) const {
 
 double User::get_rs_prediction_score_for_movie(const std::string& name,
                                              int year, int k) const {
-    if (!rs || k <= 0) {
-        return 0;
-    }
+    if (!rs || k <= 0) return 0;
     try {
         sp_movie movie = rs->get_movie(name, year);
-        if (!movie) {
-            return 0;
-        }
+        if (!movie) return 0;
         return rs->predict_movie_score(*this, movie, k);
     } catch (...) {
         return 0;
