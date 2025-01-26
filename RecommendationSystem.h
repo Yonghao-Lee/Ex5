@@ -31,5 +31,6 @@ public:
 
     friend class RecommendationSystemLoader;
 };
+std::ostream& operator<<(std::ostream& os, const RecommendationSystem& rs);
 
 #endif

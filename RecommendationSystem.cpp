@@ -181,3 +181,25 @@ sp_movie RecommendationSystem::recommend_by_cf(const User& user, int k) const {
         return nullptr;
     }
 }
+std::ostream& operator<<(std::ostream& os, const RecommendationSystem& rs)
+{
+    // Example: print all movies in ascending order, each on its own line
+    std::vector<sp_movie> sorted;
+    sorted.reserve(rs.get_movies().size());
+
+    for (auto const& [movie, features] : rs.get_movies())
+    {
+        sorted.push_back(movie);
+    }
+
+    std::sort(sorted.begin(), sorted.end(),
+              [](const sp_movie& a, const sp_movie& b) {
+                  return *a < *b;  // uses Movie::operator<
+              });
+
+    for (auto const& mv : sorted)
+    {
+        os << mv->get_name() << " (" << mv->get_year() << ")\n";
+    }
+    return os;
+}
