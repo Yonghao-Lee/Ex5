@@ -33,6 +33,6 @@ double User::get_rs_prediction_score_for_movie(const std::string& name,
 
 std::ostream& operator<<(std::ostream& s, const User& user) {
     s << "name: " << user._name << std::endl;
-    s << *(user._rec);
+    s << *(user._rec) << std::endl;  // Added extra newline here
     return s;
 }
