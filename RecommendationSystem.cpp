@@ -1,16 +1,20 @@
+/***************************************
+ *  RecommendationSystem.cpp
+ ***************************************/
 #include "RecommendationSystem.h"
 #include "User.h"
 #include <algorithm>
+#include <stdexcept>
 #include <limits>
-#include <cmath>
 
 sp_movie RecommendationSystem::add_movie_to_rs(const std::string& name,
-                                             int year,
-                                             const std::vector<double>& features) {
-    // Validate features in [1,10]
+                                               int year,
+                                               const std::vector<double>& features)
+{
+    // throw if any feature is out of [1..10]
     for (double f : features) {
         if (f < 1.0 || f > 10.0) {
-            throw std::runtime_error("Feature value out of range");
+            throw std::runtime_error("Feature out of range");
         }
     }
     sp_movie mv = std::make_shared<Movie>(name, year);
@@ -18,86 +22,92 @@ sp_movie RecommendationSystem::add_movie_to_rs(const std::string& name,
     return mv;
 }
 
-sp_movie RecommendationSystem::get_movie(const std::string& name, int year) const {
-    for (const auto& p : movies_features) {
-        if (p.first->get_name() == name && p.first->get_year() == year) {
-            return p.first;
+sp_movie RecommendationSystem::get_movie(const std::string& name, int year) const
+{
+    for (auto &kv : movies_features) {
+        if (kv.first->get_name() == name && kv.first->get_year() == year) {
+            return kv.first;
         }
     }
     return nullptr;
 }
 
 double RecommendationSystem::cosine_similarity(const std::vector<double>& v1,
-                                             const std::vector<double>& v2) const {
-    if (v1.size() != v2.size() || v1.empty()) return 0.0;
-
-    double dot = 0.0, norm1 = 0.0, norm2 = 0.0;
+                                               const std::vector<double>& v2) const
+{
+    if (v1.size() != v2.size() || v1.empty()) {
+        return 0.0;
+    }
+    double dot = 0.0;
+    double norm1 = 0.0;
+    double norm2 = 0.0;
     for (size_t i = 0; i < v1.size(); i++) {
-        dot += v1[i] * v2[i];
+        dot   += v1[i] * v2[i];
         norm1 += v1[i] * v1[i];
         norm2 += v2[i] * v2[i];
     }
-
-    norm1 = std::sqrt(norm1);
-    norm2 = std::sqrt(norm2);
-
-    if (norm1 == 0.0 || norm2 == 0.0) return 0.0;
-    return dot / (norm1 * norm2);
+    double denom = std::sqrt(norm1) * std::sqrt(norm2);
+    if (denom == 0.0) {
+        return 0.0;
+    }
+    return dot / denom;
 }
 
-std::vector<double> RecommendationSystem::get_preference_vector(const User& user) const {
-    const auto& ranks = user.get_rank();
-    if (ranks.empty()) return {};
-
-    // Calculate mean rating
-    double m = 0.0;
-    for (const auto& p : ranks) {
-        m += p.second;
+std::vector<double> RecommendationSystem::get_preference_vector(const User& user) const
+{
+    const auto &ranks = user.get_rank();
+    if (ranks.empty() || movies_features.empty()) {
+        return {};
     }
-    m /= ranks.size();
+    // user average rating
+    double sum_r = 0.0;
+    for (auto &p : ranks) {
+        sum_r += p.second;
+    }
+    double avg = sum_r / ranks.size();
 
-    // Get feature dimension
-    if (movies_features.empty()) return {};
+    // accumulate (rating-avg)*features
     size_t dim = movies_features.begin()->second.size();
-    std::vector<double> p(dim, 0.0);
+    std::vector<double> pref(dim, 0.0);
 
-    // Calculate preference vector using normalized ratings
-    for (const auto& r : ranks) {
-        auto it = movies_features.find(r.first);
-        if (it == movies_features.end()) continue;
-
-        double s_bar = r.second - m;  // Normalize rating
-        const auto& features = it->second;
+    for (auto &p : ranks) {
+        auto it = movies_features.find(p.first);
+        if (it == movies_features.end()) {
+            continue;
+        }
+        double offset = p.second - avg;
+        const std::vector<double> &feat = it->second;
         for (size_t i = 0; i < dim; i++) {
-            p[i] += s_bar * features[i];
+            pref[i] += offset * feat[i];
         }
     }
-
-    // Normalize preference vector
-    for (size_t i = 0; i < dim; i++) {
-        p[i] /= ranks.size();
-    }
-    return p;
+    return pref;
 }
 
-sp_movie RecommendationSystem::recommend_by_content(const User& user) const {
-    std::vector<double> p = get_preference_vector(user);
-    if (p.empty()) return nullptr;
+sp_movie RecommendationSystem::recommend_by_content(const User& user) const
+{
+    auto pref = get_preference_vector(user);
+    if (pref.empty()) {
+        return nullptr;
+    }
+    const auto &ranks = user.get_rank();
 
-    const auto& ranks = user.get_rank();
     double best_sim = -std::numeric_limits<double>::infinity();
     sp_movie best_movie = nullptr;
 
-    for (const auto& kv : movies_features) {
-        // Skip rated movies
-        if (ranks.find(kv.first) != ranks.end()) continue;
-
-        double sim = cosine_similarity(p, kv.second);
+    for (auto &kv : movies_features) {
+        // skip if user rated this
+        if (ranks.find(kv.first) != ranks.end()) {
+            continue;
+        }
+        double sim = cosine_similarity(pref, kv.second);
+        // break ties by earlier year or lexicographically earlier name
         if (!best_movie || sim > best_sim ||
-            (sim == best_sim &&
-             (kv.first->get_year() < best_movie->get_year() ||
-              (kv.first->get_year() == best_movie->get_year() &&
-               kv.first->get_name() < best_movie->get_name())))) {
+           (std::fabs(sim - best_sim) < 1e-9 && 
+               (kv.first->get_year() < best_movie->get_year() ||
+               (kv.first->get_year() == best_movie->get_year() &&
+                kv.first->get_name() < best_movie->get_name()))))
+        {
             best_sim = sim;
             best_movie = kv.first;
         }
@@ -106,79 +116,92 @@ sp_movie RecommendationSystem::recommend_by_content(const User& user) const {
 }
 
 double RecommendationSystem::predict_movie_score(const User& user,
-                                              const sp_movie& movie, int k) {
-    const auto& ranks = user.get_rank();
-    if (ranks.empty() || k <= 0) return 0.0;
-
-    auto movie_it = movies_features.find(movie);
-    if (movie_it == movies_features.end()) return 0.0;
-
-    // Calculate mean rating
-    double m = 0.0;
-    for (const auto& p : ranks) {
-        m += p.second;
+                                                 const sp_movie& movie, int k)
+{
+    const auto &ranks = user.get_rank();
+    if (ranks.empty()) {
+        return 0.0;
     }
-    m /= ranks.size();
+    auto it = movies_features.find(movie);
+    if (it == movies_features.end()) {
+        return 0.0;
+    }
 
-    // Get k nearest neighbors
-    std::vector<std::pair<double,double>> neighbors;
-    neighbors.reserve(ranks.size());
+    // gather similarities
+    std::vector<std::pair<double,double>> sims;
+    // will store (sim, userRating)
 
-    for (const auto& r : ranks) {
-        auto it = movies_features.find(r.first);
-        if (it == movies_features.end()) continue;
-
-        double sim = cosine_similarity(movie_it->second, it->second);
-        if (sim > 0.0) {  // Only consider positive similarities
-            neighbors.push_back({sim, r.second});
+    for (auto &p : ranks) {
+        auto it2 = movies_features.find(p.first);
+        if (it2 == movies_features.end()) {
+            continue;
         }
+        double sim = cosine_similarity(it->second, it2->second);
+        // If your snippet says to skip negative sim, you can do:
+        // if (sim <= 0) continue;
+        sims.push_back({sim, p.second});
     }
 
-    // Sort by similarity descending
-    std::sort(neighbors.begin(), neighbors.end(),
-              [](const auto& a, const auto& b) { return a.first > b.first; });
+    // sort descending by sim
+    std::sort(sims.begin(), sims.end(),
+              [](auto &a, auto &b){ return a.first > b.first; });
 
-    k = std::min(k, (int)neighbors.size());
-    if (k == 0) return m;
+    if ((int)sims.size() < k) {
+        k = (int)sims.size();
+    }
+    if (k == 0) {
+        return 0.0;
+    }
 
-    // Calculate weighted average using normalized ratings
-    double num = 0.0, den = 0.0;
+    // Weighted average: sum(sim*rating)/ sum(sim)
+    double numerator = 0.0, denominator = 0.0;
     for (int i = 0; i < k; i++) {
-        double normalized_rating = neighbors[i].second - m;
-        num += neighbors[i].first * normalized_rating;
-        den += neighbors[i].first;
+        double simVal   = sims[i].first;
+        double rating_i = sims[i].second;
+        numerator   += simVal * rating_i;
+        denominator += simVal;
     }
 
-    double score = m;
-    if (den > 0.0) {
-        score += (num / den);
+    if (std::fabs(denominator) < 1e-9) {
+        return 0.0;
     }
-    return std::max(1.0, std::min(10.0, score));  // Clamp to valid range
+
+    // If you want to clamp final to [1..10], do so:
+    double raw = numerator / denominator;
+    if (raw < 1.0) raw = 1.0;
+    if (raw > 10.0) raw = 10.0;
+
+    return raw;
 }
 
-sp_movie RecommendationSystem::recommend_by_cf(const User& user, int k) {
-    const auto& ranks = user.get_rank();
+sp_movie RecommendationSystem::recommend_by_cf(const User& user, int k)
+{
+    const auto &ranks = user.get_rank();
     double best_score = -std::numeric_limits<double>::infinity();
-    sp_movie best_movie = nullptr;
+    sp_movie best_mv  = nullptr;
 
-    for (const auto& mv : movies_features) {
-        if (ranks.find(mv.first) != ranks.end()) continue;
-
-        double score = predict_movie_score(user, mv.first, k);
-        if (!best_movie || score > best_score ||
-            (score == best_score &&
-             (mv.first->get_year() < best_movie->get_year() ||
-              (mv.first->get_year() == best_movie->get_year() &&
-               mv.first->get_name() < best_movie->get_name())))) {
+    for (auto &kv : movies_features) {
+        if (ranks.find(kv.first) != ranks.end()) {
+            continue; // user rated => skip
+        }
+        double score = predict_movie_score(user, kv.first, k);
+        if (!best_mv || score > best_score ||
+            (std::fabs(score - best_score) < 1e-9 &&
+             (kv.first->get_year() < best_mv->get_year() ||
+              (kv.first->get_year() == best_mv->get_year() &&
+               kv.first->get_name() < best_mv->get_name()))))
+        {
             best_score = score;
-            best_movie = mv.first;
+            best_mv    = kv.first;
         }
     }
-    return best_movie;
+    return best_mv;
 }
 
-std::ostream& operator<<(std::ostream& os, const RecommendationSystem& rs) {
-    for (const auto& p : rs.movies_features) {
+std::ostream& operator<<(std::ostream& os, const RecommendationSystem& rs)
+{
+    // Print all movies in ascending order (year,name)
+    for (auto &p : rs.movies_features) {
         os << *(p.first);
     }
     return os;
