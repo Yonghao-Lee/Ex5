@@ -14,4 +14,4 @@ public:
         const std::string& movies_file_path);
 };
 
-#endif
+#endif // RECOMMENDATIONSYSTEMLOADER_H

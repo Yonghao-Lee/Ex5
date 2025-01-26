@@ -11,8 +11,8 @@
 class User;
 
 /**
- * A comparator so that sp_movie is ordered by the underlying Movie::operator<
- * i.e. ascending by year, then name
+ * A comparator so that sp_movie is ordered by the underlying Movie::operator<,
+ * i.e., ascending by (year, then name).
  */
 struct sp_movie_compare {
     bool operator()(const sp_movie &lhs, const sp_movie &rhs) const {
@@ -20,18 +20,18 @@ struct sp_movie_compare {
         if (!lhs || !rhs) {
             return lhs < rhs;
         }
-        // Compare by the underlying Movie < operator
+        // Compare by the underlying Movie operator<
         return *lhs < *rhs;
     }
 };
 
 class RecommendationSystem {
 private:
-    // Sort the keys by year/name
+    // Sort keys by year/name
     std::map<sp_movie, std::vector<double>, sp_movie_compare> movies_features;
 
     double cosine_similarity(const std::vector<double>& v1,
-                            const std::vector<double>& v2) const;
+                             const std::vector<double>& v2) const;
 
     std::vector<double> get_preference_vector(const User& user) const;
 
@@ -46,14 +46,15 @@ public:
     sp_movie recommend_by_content(const User& user) const;
 
     /**
-     * Fix: Use "mean-offset" approach:
-     *   pred(u,m) = user_avg + sum_{top k}( sim(m,i)*(rating(u,i) - user_avg) ) / sum_{top k}( |sim(m,i)| )
+     * "Mean-offset" collaborative filtering rating prediction:
+     * pred(u,m) = avg(u) + sum( sim(m,i)*(r(u,i)-avg(u)) ) / sum( |sim(m,i)| ) for top-K i.
      */
     double predict_movie_score(const User& user, const sp_movie& movie, int k);
 
     sp_movie recommend_by_cf(const User& user, int k);
 
-    friend std::ostream& operator<<(std::ostream& os, const RecommendationSystem& rs);
+    friend std::ostream& operator<<(std::ostream& os,
+                                    const RecommendationSystem& rs);
 };
 
-#endif
+#endif // RECOMMENDATIONSYSTEM_H

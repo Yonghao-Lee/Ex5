@@ -1,34 +1,30 @@
 #include "UsersLoader.h"
 #include <fstream>
 #include <sstream>
-#include <stdexcept>
 
 std::vector<User> UsersLoader::create_users(
     const std::string& users_file_path,
     std::shared_ptr<RecommendationSystem> rs)
 {
     std::ifstream file(users_file_path);
+    // If file can't open, return empty vector, no throw
     if (!file.is_open()) {
-        // throw std::runtime_error("Could not open users file");
-        // or skip:
         return {};
     }
 
     std::vector<User> users;
     std::string line;
 
-    // First line is the header: "User <movie1> <movie2> ..."
+    // First line: "User <movie1> <movie2> ..."
     if (!std::getline(file, line)) {
-        return users; // empty
+        return users; // no header => no users
     }
     std::istringstream header(line);
+    std::string skip_word;
+    header >> skip_word; // maybe "User"
 
-    // The first token might be "User" or something similar
-    std::string dummy;
-    header >> dummy;
-
-    // Then the rest are "Name-Year" for each movie
     std::vector<sp_movie> movies;
+    // read each "Name-Year" from header
     std::string movie_info;
     while (header >> movie_info) {
         size_t dash = movie_info.find_last_of('-');
@@ -47,31 +43,30 @@ std::vector<User> UsersLoader::create_users(
         }
     }
 
-    // Now read each user line
+    // Now each subsequent line is "username rating1 rating2 ..."
     while (std::getline(file, line)) {
-        if (line.empty()) { continue; }
+        if (line.empty()) {
+            continue;
+        }
         std::istringstream iss(line);
         std::string username;
         iss >> username;
-        if (username.empty()) { continue; }
-
+        if (username.empty()) {
+            continue;
+        }
         rank_map ranks(0, sp_movie_hash, sp_movie_equal);
         size_t idx = 0;
+
         while (idx < movies.size() && !iss.eof()) {
             std::string rating_str;
             iss >> rating_str;
-            if (!iss.fail()) {
+            if (!iss.fail() && !rating_str.empty()) {
                 if (rating_str != "NA") {
                     try {
-                        double rt = std::stod(rating_str);
-                        // if (rt < 1 || rt > 10)
-                        // {
-                        //     // throw std::runtime_error("Rating must be in [1..10]");
-                        //     // or skip
-                        // }
-                        ranks[movies[idx]] = rt;
-                    }
-                    catch(...) {
+                        double val = std::stod(rating_str);
+                        // if (val < 1 || val > 10) { /* clamp or skip */}
+                        ranks[movies[idx]] = val;
+                    } catch(...) {
                         // skip invalid
                     }
                 }
@@ -79,10 +74,10 @@ std::vector<User> UsersLoader::create_users(
             ++idx;
         }
 
+        // Only add user if they rated at least one movie
         if (!ranks.empty()) {
             users.emplace_back(username, ranks, rs);
         }
     }
-
     return users;
 }

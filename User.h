@@ -8,6 +8,7 @@
 #include "Movie.h"
 #include "RecommendationSystem.h"
 
+// rank_map:  sp_movie -> rating
 typedef std::unordered_map<sp_movie, double, hash_func, equal_func> rank_map;
 
 class User {
