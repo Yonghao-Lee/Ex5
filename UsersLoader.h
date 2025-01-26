@@ -1,28 +1,25 @@
-/***************************************
- *  UsersLoader.h
- ***************************************/
-#ifndef USERSLOADER_H
-#define USERSLOADER_H
-
-#include "User.h"
+#ifndef USERLOADER_H
+#define USERLOADER_H
+#include <sstream>
+#include <fstream>
 #include <vector>
-#include <string>
-#include <memory>
+#include "User.h"
+#include "RecommendationSystem.h"
 
-class UsersLoader {
+#define YEAR_SEPARATOR '-'
+
+
+class UsersLoader
+{
 private:
-    UsersLoader() = default;
+
 
 public:
-    /**
-     * Create users from a file whose first line is:
-     *   "User <Movie1-Year> <Movie2-Year> ..."
-     * Then each subsequent line is:
-     *   "<username> rating1 rating2 ..."
-     * We throw if we see an out-of-range rating.
-     */
-    static std::vector<User> create_users(const std::string &users_file_path,
-                                         std::shared_ptr<RecommendationSystem> rs);
+    UsersLoader() = delete;
+    static std::vector<User> create_users(const std::string& users_file_path,
+                     std::unique_ptr<RecommendationSystem> rs) noexcept(false);
+
 };
 
-#endif // USERSLOADER_H
+
+#endif //USERLOADER_H

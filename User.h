@@ -1,43 +1,44 @@
-/***************************************
- *  User.h
- ***************************************/
 #ifndef USER_H
 #define USER_H
-
 #include <unordered_map>
+#include <vector>
 #include <string>
 #include <memory>
 #include "Movie.h"
-#include "RecommendationSystem.h"
 
-typedef std::unordered_map<sp_movie, double, hash_func, equal_func> rank_map;
+class RecommendationSystem;
+typedef std::unordered_map<sp_movie, double, hash_func,equal_func> rank_map;
 
-class User {
+class User
+{
 private:
-    std::string username;
-    rank_map ratings;
-    std::shared_ptr<RecommendationSystem> rs;
+    std::string _name;
+    rank_map _ranks;
+    std::shared_ptr<RecommendationSystem> _rec;
 
 public:
-    User(const std::string &username, const rank_map &r,
-         std::shared_ptr<RecommendationSystem> rs)
-        : username(username), ratings(r), rs(std::move(rs)) {}
+    // GETTERS
+    User(std::string name, rank_map& ranks,
+         std::shared_ptr<RecommendationSystem> rec);
 
-    std::string get_name() const { return username; }
-    const rank_map& get_rank() const { return ratings; }
+    const std::string& get_name() const;
 
-    /** Add or overwrite rating for (name,year). Also add the movie to RS if needed. */
-    void add_movie_to_user(const std::string &name, int year,
-                           const std::vector<double> &features,
-                           double rate);
+	void add_movie_to_user(const std::string &name, int year,
+                         const std::vector<double> &features,
+                         double rate);
 
-    sp_movie get_rs_recommendation_by_content() const;
-    sp_movie get_rs_recommendation_by_cf(int k) const;
+    const rank_map& get_ranks() const;
 
-    double get_rs_prediction_score_for_movie(const std::string& name,
+	sp_movie get_rs_recommendation_by_content() const;
+
+	sp_movie get_rs_recommendation_by_cf(int k) const;
+
+	double get_rs_prediction_score_for_movie(const std::string& name,
                                              int year, int k) const;
 
-    friend std::ostream& operator<<(std::ostream &os, const User &user);
+    friend std::ostream& operator<<(std::ostream& s, const User& user);
 };
 
-#endif // USER_H
+
+
+#endif //USER_H
