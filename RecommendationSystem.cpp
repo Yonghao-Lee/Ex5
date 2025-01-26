@@ -161,7 +161,7 @@ double RecommendationSystem::predict_movie_score(const User& user,
         }
         double sim = cosine_similarity(targetFeats, it2->second);
         if (sim >= -1.0) {
-            sims.push_back({sim, rating});
+            sims.emplace_back(sim, rating);
         }
     }
     if (sims.empty()) {
