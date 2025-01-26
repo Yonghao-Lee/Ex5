@@ -1,25 +1,20 @@
-#ifndef USERLOADER_H
-#define USERLOADER_H
-#include <sstream>
-#include <fstream>
+#ifndef USERSLOADER_H
+#define USERSLOADER_H
+
+#include <memory>
 #include <vector>
+#include <string>
 #include "User.h"
 #include "RecommendationSystem.h"
 
-#define YEAR_SEPARATOR '-'
-
-
-class UsersLoader
-{
+class UsersLoader {
 private:
-
+    UsersLoader() = default;
 
 public:
-    UsersLoader() = delete;
-    static std::vector<User> create_users(const std::string& users_file_path,
-                     std::unique_ptr<RecommendationSystem> rs) noexcept(false);
-
+    static std::vector<User> create_users(
+        const std::string& users_file_path,
+        std::shared_ptr<RecommendationSystem> rs);
 };
 
-
-#endif //USERLOADER_H
+#endif // USERSLOADER_H

@@ -22,16 +22,16 @@ public:
          : username(username), ratings(ranks), rs(std::move(rs)) {}
 
     std::string get_name() const { return username; }
-    const rank_map& get_rank() const { return ratings; }
+    const rank_map& get_ranks() const { return ratings; }
 
-    void add_movie_to_user(const std::string &name, int year,
-                           const std::vector<double> &features,
-                           double rate);
+    void add_movie_to_user(const std::string& name, int year,
+                          const std::vector<double>& features,
+                          double rate);
 
     sp_movie get_rs_recommendation_by_content() const;
     sp_movie get_rs_recommendation_by_cf(int k) const;
     double get_rs_prediction_score_for_movie(const std::string& name,
-                                             int year, int k) const;
+                                           int year, int k) const;
 
     friend std::ostream& operator<<(std::ostream& os, const User& user);
 };
