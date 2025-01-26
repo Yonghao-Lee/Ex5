@@ -3,10 +3,8 @@
 #include <sstream>
 #include <stdexcept>
 
-std::vector<User> UsersLoader::create_users(
-    const std::string& users_file_path,
-    std::shared_ptr<RecommendationSystem> rs)
-{
+std::vector<User> UsersLoader::create_users(const std::string& users_file_path,
+    std::shared_ptr<RecommendationSystem> rs) {
     if (!rs) {
         throw std::invalid_argument("Recommendation system cannot be null");
     }
@@ -19,81 +17,70 @@ std::vector<User> UsersLoader::create_users(
     std::vector<User> users;
     std::string line;
 
-    // Read header line
+    // Read header
     if (!std::getline(file, line)) {
         throw std::runtime_error("Empty users file");
     }
 
-    // The header looks like: "USER mov1-year mov2-year mov3-year ..."
+    // Parse header
     std::istringstream header(line);
-    std::string skip; // typically "USER"
+    std::string skip;
     header >> skip;
 
-    std::vector<sp_movie> movies_in_header;
+    std::vector<sp_movie> header_movies;
     std::string movie_info;
 
-    // For each "movName-year" in the header, parse it
     while (header >> movie_info) {
         size_t pos = movie_info.rfind('-');
-        if (pos == std::string::npos || pos == 0 || pos == movie_info.size()-1) {
-            throw std::runtime_error("Invalid movie format in header: " + movie_info);
+        if (pos == std::string::npos || pos == 0 || pos == movie_info.length()-1) {
+            throw std::runtime_error("Invalid movie format: " + movie_info);
         }
         std::string name = movie_info.substr(0, pos);
         int year = std::stoi(movie_info.substr(pos + 1));
 
-        // Make sure the movie is in the RS
-        sp_movie mv = rs->get_movie(name, year);
-        if (!mv) {
-            throw std::runtime_error("Movie not found in RS: " + movie_info);
+        sp_movie movie = rs->get_movie(name, year);
+        if (!movie) {
+            throw std::runtime_error("Movie not found: " + movie_info);
         }
-        movies_in_header.push_back(mv);
+        header_movies.push_back(movie);
     }
 
-    if (movies_in_header.empty()) {
-        throw std::runtime_error("No valid movies found in header");
+    if (header_movies.empty()) {
+        throw std::runtime_error("No movies in header");
     }
 
-    // Now read each subsequent line for a user
-    int line_number = 1;
+    // Read users
     while (std::getline(file, line)) {
-        ++line_number;
-        if (line.empty()) {
-            continue;
-        }
-        std::istringstream iss(line);
+        if (line.empty()) continue;
 
+        std::istringstream iss(line);
         std::string username;
         if (!(iss >> username)) {
-            throw std::runtime_error("Invalid username format on line "
-                                     + std::to_string(line_number));
+            continue;
         }
 
-        rank_map user_ratings(0, sp_movie_hash, sp_movie_equal);
+        rank_map ratings(0, sp_movie_hash, sp_movie_equal);
+        std::string rating_str;
+        size_t movie_idx = 0;
 
-        // Now read rating or "NA" for each movie in movies_in_header
-        for (size_t i = 0; i < movies_in_header.size(); i++) {
-            std::string rating_str;
-            if (!(iss >> rating_str)) {
-                // If there's no token, treat it like "NA" or break
-                break;
-            }
+        while (iss >> rating_str && movie_idx < header_movies.size()) {
             if (rating_str != "NA") {
-                double rate = std::stod(rating_str);
-                if (rate < 1.0 || rate > 10.0) {
-                    throw std::runtime_error("Rating must be between 1 and 10");
+                double rating = std::stod(rating_str);
+                if (rating < 1 || rating > 10) {
+                    throw std::runtime_error("Invalid rating: " + rating_str);
                 }
-                user_ratings[movies_in_header[i]] = rate;
+                ratings[header_movies[movie_idx]] = rating;
             }
+            movie_idx++;
         }
 
-        // Only create a User if they have at least one valid rating
-        if (!user_ratings.empty()) {
-            users.emplace_back(username, user_ratings, rs);
+        if (!ratings.empty()) {
+            users.emplace_back(username, ratings, rs);
         }
     }
 
     if (users.empty()) {
-        throw std::runtime_error("No valid users found in file");
+        throw std::runtime_error("No valid users found");
     }
 
     return users;

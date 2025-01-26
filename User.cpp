@@ -2,26 +2,17 @@
 #include <algorithm>
 
 void User::add_movie_to_user(const std::string& name, int year,
-                            const std::vector<double>& features,
-                            double rate) {
-    if (!rs) {
-        throw std::runtime_error("Recommendation system not initialized");
-    }
-    if (rate < 1 || rate > 10) {
-        throw std::invalid_argument("Rating must be between 1 and 10");
-    }
+                            const std::vector<double>& features, double rate) {
+    if (!rs) throw std::runtime_error("No recommendation system");
+    if (rate < 1 || rate > 10) throw std::invalid_argument("Invalid rating");
 
     sp_movie movie = rs->add_movie_to_rs(name, year, features);
-    if (!movie) {
-        throw std::runtime_error("Failed to create/get movie");
-    }
+    if (!movie) throw std::runtime_error("Failed to add movie");
     ratings[movie] = rate;
 }
 
 sp_movie User::get_rs_recommendation_by_content() const {
-    if (!rs || ratings.empty()) {
-        return nullptr;
-    }
+    if (!rs || ratings.empty()) return nullptr;
     try {
         return rs->recommend_by_content(*this);
     } catch (...) {
@@ -58,10 +49,7 @@ std::ostream& operator<<(std::ostream& os, const User& user) {
             sorted.push_back(movie);
         }
         std::sort(sorted.begin(), sorted.end(),
-                  [](const sp_movie& a, const sp_movie& b) {
-                      return *a < *b;
-                  });
-
+                 [](const sp_movie& a, const sp_movie& b) { return *a < *b; });
         for (const auto& movie : sorted) {
             os << movie->get_name() << " (" << movie->get_year() << ")\n";
         }
