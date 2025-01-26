@@ -67,7 +67,7 @@ double RecommendationSystem::check_similarity(const sp_movie& movie1, const sp_m
 }
 
 sp_movie RecommendationSystem::recommend_by_content(const User& user) {
-    const rank_map& ranks = user.get_ranks();
+    const rank_map& ranks = user.get_rank();
     std::vector<double> pref_vec;
     make_pref(ranks, pref_vec);
     return find_rec(ranks, pref_vec);
@@ -106,8 +106,8 @@ sp_movie RecommendationSystem::find_rec(const rank_map& ranks, const std::vector
 }
 
 double RecommendationSystem::predict_movie_score(const User& user, const sp_movie& movie, int k) {
-    const rank_map& ranks = user.get_ranks();
-    std::vector<std::pair<double, sp_movie>> similarities;
+    const rank_map& ranks = user.get_rank();
+    std::vector<std::pair<double, sp_movie> > similarities;
 
     for (const auto& rank : ranks) {
         double sim = check_similarity(rank.first, movie);
@@ -127,7 +127,7 @@ double RecommendationSystem::predict_movie_score(const User& user, const sp_movi
 }
 
 sp_movie RecommendationSystem::recommend_by_cf(const User& user, int k) {
-    const rank_map& ranks = user.get_ranks();
+    const rank_map& ranks = user.get_rank();
     sp_movie best_movie = nullptr;
     double max_score = -1;
 
