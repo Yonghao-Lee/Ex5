@@ -1,51 +1,74 @@
 #include "UsersLoader.h"
+#include <fstream>
+#include <sstream>
 
-#define INIT_BUCKET_SIZE 8
-#define ERROR_MSG "input file is incorrect"
-
-
-std::vector<User>UsersLoader::create_users
-(const std::string &users_file_path, std::unique_ptr<RecommendationSystem> rs)
-noexcept(false)
+std::vector<User> UsersLoader::create_users(
+    const std::string& users_file_path,
+    std::shared_ptr<RecommendationSystem> rs)
 {
-    std::shared_ptr<RecommendationSystem> s_rs = std::move(rs);
-    std::ifstream in_file;
-    std::vector<User> users;
-    in_file.open(users_file_path);
-    std::string buffer;
-    getline(in_file, buffer);
-    std::istringstream movies_names(buffer);
-    std::vector<sp_movie> movies;
-    while (movies_names >> buffer)
-    {
-        size_t end = buffer.find(YEAR_SEPARATOR);
-        sp_movie m = s_rs->get_movie(buffer.substr(0, end),
-         std::stoi(buffer.substr(end + 1, buffer.length())));
-        movies.push_back(m);
-    }
-    while (getline(in_file, buffer))
-    {
-        std::string user_name;
-        std::string ranking;
-        std::istringstream splitted_line(buffer);
-        splitted_line >> user_name;
-        int i = 0;
-        rank_map ranks(INIT_BUCKET_SIZE,sp_movie_hash,sp_movie_equal);
-        while (splitted_line >> ranking)
-        {
+    std::ifstream file(users_file_path);
+    if (!file.is_open()) return {};
 
-            if (ranking != "NA")
-            {
-                int rating = std::stoi(ranking);
-                if (rating <= 0){
-                    throw std::invalid_argument(ERROR_MSG);
-                }
-                ranks[movies[i]] = rating;
-            }
-            i++;
+    std::vector<User> users;
+    std::string line;
+
+    if (!std::getline(file, line)) return users;
+
+    std::istringstream header(line);
+    std::string skip_word;
+    header >> skip_word;
+
+    std::vector<sp_movie> movies;
+    std::string movie_info;
+    while (header >> movie_info) {
+        size_t dash = movie_info.find_last_of('-');
+        if (dash == std::string::npos) continue;
+
+        std::string name = movie_info.substr(0, dash);
+        int year;
+        try {
+            year = std::stoi(movie_info.substr(dash+1));
+        } catch(...) {
+            continue;
         }
-        users.emplace_back(user_name, ranks, s_rs);
+        sp_movie mv = rs->get_movie(name, year);
+        if (mv) movies.push_back(mv);
     }
-    in_file.close();
+
+    while (std::getline(file, line)) {
+        if (line.empty()) continue;
+
+        std::istringstream iss(line);
+        std::string uname;
+        iss >> uname;
+        if (uname.empty()) continue;
+
+        rank_map ranks(0, sp_movie_hash, sp_movie_equal);
+        size_t idx = 0;
+
+        while (idx < movies.size() && !iss.eof()) {
+            std::string rating_str;
+            iss >> rating_str;
+
+            if (rating_str != "NA") {
+                try {
+                    double val = std::stod(rating_str);
+                    if (val < 1.0 || val > 10.0) {
+                        throw std::runtime_error("Rating out of range");
+                    }
+                    ranks[movies[idx]] = val;
+                } catch(const std::runtime_error& e) {
+                    throw;
+                } catch(...) {
+                    continue;
+                }
+            }
+            idx++;
+        }
+
+        if (!ranks.empty()) {
+            users.emplace_back(uname, ranks, rs);
+        }
+    }
     return users;
 }

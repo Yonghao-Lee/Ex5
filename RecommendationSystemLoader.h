@@ -1,17 +1,17 @@
-
 #ifndef RECOMMENDATIONSYSTEMLOADER_H
 #define RECOMMENDATIONSYSTEMLOADER_H
+
 #include "RecommendationSystem.h"
+#include <memory>
+#include <string>
 
 class RecommendationSystemLoader {
+private:
+    RecommendationSystemLoader() = default;
 
- private:
-
- public:
-  RecommendationSystemLoader () = delete;
-
-  static std::unique_ptr<RecommendationSystem> create_rs_from_movies
-	  (const std::string &movies_file_path) noexcept (false);
+public:
+    static std::unique_ptr<RecommendationSystem> create_rs_from_movies(
+        const std::string& movies_file_path);
 };
 
-#endif //RECOMMENDATIONSYSTEMLOADER_H
+#endif // RECOMMENDATIONSYSTEMLOADER_H

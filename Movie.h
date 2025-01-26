@@ -1,43 +1,47 @@
-
-#ifndef MOVIE_H
-#define MOVIE_H
+#ifndef EX5_MOVIE_H
+#define EX5_MOVIE_H
 
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <functional>
 
 #define HASH_START 17
-
-
+#define RES_MULT 31
 
 class Movie;
-
 typedef std::shared_ptr<Movie> sp_movie;
 
-
+/** Custom hashing & equality for sp_movie. */
 typedef std::size_t (*hash_func)(const sp_movie& movie);
 typedef bool (*equal_func)(const sp_movie& m1,const sp_movie& m2);
+
+/** Forward declares. */
 std::size_t sp_movie_hash(const sp_movie& movie);
 bool sp_movie_equal(const sp_movie& m1,const sp_movie& m2);
 
-class Movie
-{
-
+class Movie {
 private:
-    std::string _name;
-    int _year;
+    std::string name;
+    int year;
 
 public:
+    Movie(const std::string& name, int year) : name(name), year(year) {}
 
-    Movie(const std::string& name, int year);
+    const std::string& get_name() const { return name; }
+    int get_year() const { return year; }
 
-    const std::string& get_name() const;
+    bool operator<(const Movie& rhs) const {
+        if (year != rhs.year) {
+            return year < rhs.year;
+        }
+        return name < rhs.name;
+    }
 
-    int get_year() const;
-
-    friend bool operator<(const Movie& lhs, const Movie& rhs);
-    friend std::ostream& operator<<(std::ostream& s, const Movie& movie);
+    friend std::ostream& operator<<(std::ostream& os, const Movie& movie) {
+        os << movie.name << " (" << movie.year << ")\n";
+        return os;
+    }
 };
 
-
-#endif
+#endif // EX5_MOVIE_H

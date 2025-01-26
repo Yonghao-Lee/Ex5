@@ -1,39 +1,56 @@
-
 #include "RecommendationSystemLoader.h"
 #include <fstream>
 #include <sstream>
-#define YEAR_SEPARATOR '-'
-#define ERROR_MSG "input file is incorrect"
+#include <stdexcept>
 
-
-std::unique_ptr<RecommendationSystem> RecommendationSystemLoader::
-create_rs_from_movies(const std::string &movies_file_path) noexcept(false)
-{
-    std::unique_ptr<RecommendationSystem> rs =
-            std::make_unique<RecommendationSystem>();
-    std::ifstream in_file;
-    in_file.open(movies_file_path);
-    std::string buffer;
-
-    while (getline(in_file, buffer))
-    {
-        std::string movie_det;
-        double ranking;
-        std::istringstream splitted_line(buffer);
-        splitted_line >> movie_det;
-        std::vector<double> vec;
-        while (splitted_line >> ranking)
-        {
-            if (ranking <= 0){
-                throw std::invalid_argument(ERROR_MSG);
-            }
-            vec.push_back(ranking);
-        }
-        size_t end = buffer.find(YEAR_SEPARATOR);
-        rs->add_movie_to_rs(buffer.substr(0, end),
-                            std::stoi(buffer.substr(end + 1,
-                                buffer.length())), vec);
+std::unique_ptr<RecommendationSystem>
+RecommendationSystemLoader::create_rs_from_movies(const std::string& movies_file_path) {
+    auto rs = std::make_unique<RecommendationSystem>();
+    std::ifstream file(movies_file_path);
+    if (!file.is_open()) {
+        throw std::runtime_error("Unable to open movies file");
     }
-    in_file.close();
+
+    std::string line;
+    while (std::getline(file, line)) {
+        try {
+            std::istringstream iss(line);
+            std::string name_year;
+            if (!(iss >> name_year)) continue;
+
+            size_t dash = name_year.find_last_of('-');
+            if (dash == std::string::npos) {
+                continue;
+            }
+
+            std::string name = name_year.substr(0, dash);
+            int year;
+            try {
+                year = std::stoi(name_year.substr(dash + 1));
+            } catch (...) {
+                continue;
+            }
+
+            std::vector<double> features;
+            double val;
+            while (iss >> val) {
+                if (val < 1.0 || val > 10.0) {
+                    throw std::runtime_error("Feature value out of range");
+                }
+                features.push_back(val);
+            }
+
+            if (features.empty()) {
+                continue;
+            }
+
+            rs->add_movie_to_rs(name, year, features);
+        } catch (const std::runtime_error& e) {
+            if (std::string(e.what()) == "Feature value out of range") {
+                throw;
+            }
+            continue;
+        }
+    }
     return rs;
 }
