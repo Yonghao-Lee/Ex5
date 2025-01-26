@@ -97,7 +97,7 @@ std::vector<double> RecommendationSystem::get_preference_vector(const User& user
 
     double norm = 0.0;
     for (double val : pref) {
-        norm += val*val;
+        norm += val * val;
     }
     norm = std::sqrt(norm);
     if (norm > 1e-10) {
@@ -116,7 +116,7 @@ sp_movie RecommendationSystem::recommend_by_content(const User& user) const {
     const auto& rank = user.get_rank();
 
     for (auto const& [movie, feats] : movies_features) {
-        // skip if user already rated
+        // Skip if user already rated
         if (rank.find(movie) != rank.end()) {
             continue;
         }
@@ -168,7 +168,7 @@ double RecommendationSystem::predict_movie_score(const User& user,
         throw std::runtime_error("No similarities found for user");
     }
 
-    // partial sort top k
+    // Partial sort top k
     if (static_cast<int>(sims.size()) > k) {
         std::partial_sort(sims.begin(), sims.begin() + k, sims.end(),
                           [](auto &a, auto &b) { return a.first > b.first; });
@@ -181,7 +181,7 @@ double RecommendationSystem::predict_movie_score(const User& user,
     double sumW = 0.0, sumWR = 0.0;
     for (auto const& [sim, userRating] : sims) {
         sumW  += sim;
-        sumWR += sim*userRating;
+        sumWR += sim * userRating;
     }
     if (sumW < 1e-10) {
         throw std::runtime_error("Sum of similarities too small");
@@ -211,7 +211,7 @@ sp_movie RecommendationSystem::recommend_by_cf(const User& user, int k) const {
                 best = movie;
             }
         } catch (...) {
-            // skip if predict fails
+            // Skip if predict fails
         }
     }
     if (!best) {

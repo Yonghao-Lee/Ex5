@@ -5,18 +5,40 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <functional>
 
 #define HASH_START 17
 #define RES_MULT 31
 
 class Movie;
 typedef std::shared_ptr<Movie> sp_movie;
-typedef std::size_t (*hash_func)(const sp_movie& movie);
-typedef bool (*equal_func)(const sp_movie& m1, const sp_movie& m2);
+
+// Hash functor for sp_movie
+struct sp_movie_hash {
+    std::size_t operator()(const sp_movie& movie) const {
+        if (!movie) {
+            throw std::invalid_argument("Null movie pointer");
+        }
+        std::size_t result = HASH_START;
+        result = result * RES_MULT + std::hash<std::string>()(movie->get_name());
+        result = result * RES_MULT + std::hash<int>()(movie->get_year());
+        return result;
+    }
+};
+
+// Equality functor for sp_movie
+struct sp_movie_equal {
+    bool operator()(const sp_movie& m1, const sp_movie& m2) const {
+        if (!m1 || !m2) {
+            throw std::invalid_argument("Null movie pointer");
+        }
+        // Two movies are equal if neither is strictly less than the other
+        return !(*m1 < *m2) && !(*m2 < *m1);
+    }
+};
 
 // Hash + equality for using sp_movie in std::unordered_map
-std::size_t sp_movie_hash(const sp_movie& movie);
-bool sp_movie_equal(const sp_movie& m1, const sp_movie& m2);
+// These are no longer needed as functors are defined above
 
 class Movie {
 private:
@@ -53,4 +75,4 @@ public:
     }
 };
 
-#endif
+#endif // EX5_MOVIE_H

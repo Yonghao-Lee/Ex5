@@ -18,4 +18,4 @@ public:
     create_rs_from_movies(const std::string& movies_file_path);
 };
 
-#endif
+#endif // RECOMMENDATIONSYSTEMLOADER_H

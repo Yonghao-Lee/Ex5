@@ -8,7 +8,7 @@
 
 class RecommendationSystem;
 
-typedef std::unordered_map<sp_movie, double, hash_func, equal_func> rank_map;
+typedef std::unordered_map<sp_movie, double, sp_movie_hash, sp_movie_equal> rank_map;
 
 /**
  * A user with a username, a map of ratings, and a pointer to a
@@ -52,4 +52,4 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const User& user);
 };
 
-#endif
+#endif // USER_H

@@ -25,4 +25,4 @@ public:
                                           std::shared_ptr<RecommendationSystem> rs);
 };
 
-#endif
+#endif // USERSLOADER_H

@@ -9,16 +9,17 @@
 
 class User;
 
-typedef std::size_t (*hash_func)(const sp_movie& movie);
-typedef bool (*equal_func)(const sp_movie& m1, const sp_movie& m2);
+// Forward declarations of hash and equality functors
+struct sp_movie_hash;
+struct sp_movie_equal;
 
 /**
  * Manages a collection of movies + features and provides recommendations.
  */
 class RecommendationSystem {
 private:
-    // Use unordered_map with custom hash and equality functions
-    std::unordered_map<sp_movie, std::vector<double>, hash_func, equal_func> movies_features;
+    // Use unordered_map with custom hash and equality functors
+    std::unordered_map<sp_movie, std::vector<double>, sp_movie_hash, sp_movie_equal> movies_features;
 
     void validate_feature_vector(const std::vector<double>& features) const;
     double cosine_similarity(const std::vector<double>& v1,
@@ -28,7 +29,7 @@ private:
 public:
     RecommendationSystem() = default;
 
-    const std::unordered_map<sp_movie, std::vector<double>, hash_func, equal_func>& get_movies() const {
+    const std::unordered_map<sp_movie, std::vector<double>, sp_movie_hash, sp_movie_equal>& get_movies() const {
         return movies_features;
     }
 
@@ -59,4 +60,4 @@ public:
  */
 std::ostream& operator<<(std::ostream& os, const RecommendationSystem& rs);
 
-#endif
+#endif // RECOMMENDATIONSYSTEM_H

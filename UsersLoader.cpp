@@ -90,7 +90,7 @@ std::vector<User> UsersLoader::create_users(const std::string& users_file_path,
             continue;
         }
 
-        rank_map ratings(0, sp_movie_hash, sp_movie_equal);
+        rank_map ratings; // Default constructor uses sp_movie_hash and sp_movie_equal
         size_t movie_idx = 0;
         std::string rating_str;
 
