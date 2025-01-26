@@ -3,7 +3,7 @@
 #include <sstream>
 #include <stdexcept>
 
-std::unique_ptr<RecommendationSystem>
+std::shared_ptr<RecommendationSystem>
 RecommendationSystemLoader::create_rs_from_movies(const std::string& path)
 {
     std::ifstream file(path);
@@ -11,7 +11,7 @@ RecommendationSystemLoader::create_rs_from_movies(const std::string& path)
         throw std::runtime_error("Could not open movies file: " + path);
     }
 
-    auto rs = std::make_unique<RecommendationSystem>();
+    auto rs = std::make_shared<RecommendationSystem>();
     std::string line;
     int line_number = 0;
     size_t expected_features = 0;
@@ -25,17 +25,15 @@ RecommendationSystemLoader::create_rs_from_movies(const std::string& path)
             std::istringstream iss(line);
             std::string movie_info;
             if (!(iss >> movie_info)) {
-                // no token => skip
+                // No tokens in this line
                 continue;
             }
             size_t pos = movie_info.rfind('-');
-            if (pos == std::string::npos || pos == 0 ||
-                pos == movie_info.size() - 1)
-            {
+            if (pos == std::string::npos || pos == 0 || pos == movie_info.size() - 1) {
                 throw std::runtime_error("Invalid movie format");
             }
             std::string name = movie_info.substr(0, pos);
-            int year = std::stoi(movie_info.substr(pos+1));
+            int year = std::stoi(movie_info.substr(pos + 1));
 
             std::vector<double> features;
             double feat;
@@ -46,7 +44,7 @@ RecommendationSystemLoader::create_rs_from_movies(const std::string& path)
                 features.push_back(feat);
             }
 
-            // check feature count consistency
+            // Check feature count consistency
             if (line_number == 1) {
                 expected_features = features.size();
             } else {
